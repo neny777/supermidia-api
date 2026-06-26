@@ -135,7 +135,9 @@ public class ProdutoCalculoService {
 		case AREA_COM_ACRESCIMOS_E_FATOR -> calcularAreaComAcrescimosEFator(parametros, context);
 		case PERIMETRO_BASE -> resolverBase(baseOperacional, context);
 		case PERIMETRO_COM_ESPACAMENTO -> calcularPorEspacamento(baseOperacional, parametros, context);
-		case QUANTIDADE_INFORMADA, METRO_LINEAR_INFORMADO, SELECAO_POR_MEDIDA, UNIDADE_FIXA ->
+		case UNIDADE_FIXA -> getParametroObrigatorio(parametros, CodigoParametroCalculo.QUANTIDADE_FIXA)
+				.multiply(context.quantidade());
+		case QUANTIDADE_INFORMADA, METRO_LINEAR_INFORMADO, SELECAO_POR_MEDIDA ->
 			throw new ProdutoCalculoValidationException(
 					"O tipo de cálculo " + tipoCalculo + " ainda não foi implementado na execução do produto.");
 		};
