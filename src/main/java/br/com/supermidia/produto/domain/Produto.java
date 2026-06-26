@@ -1,5 +1,6 @@
 package br.com.supermidia.produto.domain;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +34,14 @@ public class Produto {
 	@Column(name = "nome", nullable = false, length = 140, unique = true)
 	@Convert(converter = UppercaseConverter.class)
 	private String nome;
+
+	// Markup percentual aplicado sobre o custo total para formar o preço sugerido.
+	// Ex.: 80.00 = +80%. Selecionado pela categoria do cliente (REVENDA -> atacado, FINAL -> varejo).
+	@Column(name = "markup_atacado", precision = 7, scale = 2)
+	private BigDecimal markupAtacado;
+
+	@Column(name = "markup_varejo", precision = 7, scale = 2)
+	private BigDecimal markupVarejo;
 
 	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	@Fetch(FetchMode.SUBSELECT)
@@ -89,6 +98,22 @@ public class Produto {
 
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+
+	public BigDecimal getMarkupAtacado() {
+		return markupAtacado;
+	}
+
+	public void setMarkupAtacado(BigDecimal markupAtacado) {
+		this.markupAtacado = markupAtacado;
+	}
+
+	public BigDecimal getMarkupVarejo() {
+		return markupVarejo;
+	}
+
+	public void setMarkupVarejo(BigDecimal markupVarejo) {
+		this.markupVarejo = markupVarejo;
 	}
 
 	public List<ProdutoMateriaCalculo> getMateriasCalculo() {

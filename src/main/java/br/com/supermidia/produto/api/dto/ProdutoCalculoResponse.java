@@ -16,6 +16,11 @@ public class ProdutoCalculoResponse {
 	private BigDecimal totalMateriais;
 	private BigDecimal totalServicos;
 	private BigDecimal totalGeral;
+	private BigDecimal markupAtacado;
+	private BigDecimal markupVarejo;
+	private BigDecimal precoAtacado;
+	private BigDecimal precoVarejo;
+	private BigDecimal precoSugerido;
 
 	public UUID getProdutoId() {
 		return produtoId;
@@ -95,5 +100,45 @@ public class ProdutoCalculoResponse {
 
 	public void setTotalGeral(BigDecimal totalGeral) {
 		this.totalGeral = totalGeral;
+	}
+
+	public BigDecimal getMarkupAtacado() {
+		return markupAtacado;
+	}
+
+	public void setMarkupAtacado(BigDecimal markupAtacado) {
+		this.markupAtacado = markupAtacado;
+	}
+
+	public BigDecimal getMarkupVarejo() {
+		return markupVarejo;
+	}
+
+	public void setMarkupVarejo(BigDecimal markupVarejo) {
+		this.markupVarejo = markupVarejo;
+	}
+
+	public BigDecimal getPrecoAtacado() {
+		return precoAtacado;
+	}
+
+	public void setPrecoAtacado(BigDecimal precoAtacado) {
+		this.precoAtacado = precoAtacado;
+	}
+
+	public BigDecimal getPrecoVarejo() {
+		return precoVarejo;
+	}
+
+	public void setPrecoVarejo(BigDecimal precoVarejo) {
+		this.precoVarejo = precoVarejo;
+	}
+
+	public BigDecimal getPrecoSugerido() {
+		return precoSugerido;
+	}
+
+	public void setPrecoSugerido(BigDecimal precoSugerido) {
+		this.precoSugerido = precoSugerido;
 	}
 }

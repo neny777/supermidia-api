@@ -18,6 +18,7 @@ import br.com.supermidia.calculo.domain.BaseOperacionalCalculo;
 import br.com.supermidia.calculo.domain.Calculo;
 import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
+import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
@@ -84,6 +85,56 @@ class ProdutoCalculoServiceTest {
 		assertThatThrownBy(() -> calculoService.calcular(produtoId, request("100", "80", "1")))
 				.isInstanceOf(ProdutoCalculoValidationException.class)
 				.hasMessageContaining("QUANTIDADE_FIXA");
+	}
+
+	@Test
+	void deveAplicarMarkupDeAtacadoEVarejoSobreOCusto() {
+		// custo = 2un * 3 peças * R$1,50 = R$9,00; atacado +80% => 16,20; varejo +120% => 19,80
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
+		produto.setMarkupAtacado(new BigDecimal("80"));
+		produto.setMarkupVarejo(new BigDecimal("120"));
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "80", "3"));
+
+		assertThat(response.getTotalGeral()).isEqualByComparingTo("9.00");
+		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("80");
+		assertThat(response.getMarkupVarejo()).isEqualByComparingTo("120");
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("16.20");
+		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("19.80");
+		// sem categoria informada, não há preço sugerido
+		assertThat(response.getPrecoSugerido()).isNull();
+	}
+
+	@Test
+	void deveSugerirAtacadoParaRevendaEVarejoParaConsumidorFinal() {
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
+		produto.setMarkupAtacado(new BigDecimal("80"));
+		produto.setMarkupVarejo(new BigDecimal("120"));
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoRequest revenda = request("100", "80", "3");
+		revenda.setCategoria(Categoria.R);
+		ProdutoCalculoRequest finalConsumidor = request("100", "80", "3");
+		finalConsumidor.setCategoria(Categoria.F);
+
+		assertThat(calculoService.calcular(produtoId, revenda).getPrecoSugerido()).isEqualByComparingTo("16.20");
+		assertThat(calculoService.calcular(produtoId, finalConsumidor).getPrecoSugerido()).isEqualByComparingTo("19.80");
+	}
+
+	@Test
+	void markupNuloDeveResultarEmPrecoIgualAoCusto() {
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
+		// markups não informados (null)
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "80", "3"));
+
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("9.00");
+		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("9.00");
 	}
 
 	// --- fixtures ---

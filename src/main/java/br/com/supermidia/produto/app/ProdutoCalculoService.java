@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.supermidia.calculo.domain.BaseOperacionalCalculo;
 import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
+import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
@@ -64,13 +65,42 @@ public class ProdutoCalculoService {
 		BigDecimal totalMateriais = somarTotais(materiais);
 		BigDecimal totalServicos = somarTotais(servicos);
 
+		BigDecimal custoTotal = totalMateriais.add(totalServicos).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
+
 		response.setMateriais(materiais);
 		response.setServicos(servicos);
 		response.setTotalMateriais(totalMateriais);
 		response.setTotalServicos(totalServicos);
-		response.setTotalGeral(totalMateriais.add(totalServicos).setScale(SCALE_VALOR, RoundingMode.HALF_UP));
+		response.setTotalGeral(custoTotal);
+
+		aplicarPrecificacao(response, produto, custoTotal, request.getCategoria());
 
 		return response;
+	}
+
+	private void aplicarPrecificacao(ProdutoCalculoResponse response, Produto produto, BigDecimal custoTotal,
+			Categoria categoria) {
+		BigDecimal markupAtacado = nuloComoZero(produto.getMarkupAtacado());
+		BigDecimal markupVarejo = nuloComoZero(produto.getMarkupVarejo());
+		BigDecimal precoAtacado = aplicarMarkup(custoTotal, markupAtacado);
+		BigDecimal precoVarejo = aplicarMarkup(custoTotal, markupVarejo);
+
+		response.setMarkupAtacado(markupAtacado);
+		response.setMarkupVarejo(markupVarejo);
+		response.setPrecoAtacado(precoAtacado);
+		response.setPrecoVarejo(precoVarejo);
+
+		if (categoria != null) {
+			response.setPrecoSugerido(categoria == Categoria.R ? precoAtacado : precoVarejo);
+		}
+	}
+
+	private BigDecimal aplicarMarkup(BigDecimal custoTotal, BigDecimal markupPercentual) {
+		return custoTotal.multiply(CEM.add(markupPercentual)).divide(CEM, SCALE_VALOR, RoundingMode.HALF_UP);
+	}
+
+	private BigDecimal nuloComoZero(BigDecimal valor) {
+		return valor == null ? BigDecimal.ZERO : valor;
 	}
 
 	private ProdutoCalculoItemResponse calcularMateria(ProdutoMateriaCalculo item, ProdutoCalculoContext context) {
