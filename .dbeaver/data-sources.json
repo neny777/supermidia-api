@@ -1,0 +1,42 @@
+{
+	"folders": {},
+	"connections": {
+		"mysql8-1988cc925b9-6796fd549bb606c6": {
+			"provider": "mysql",
+			"driver": "mysql8",
+			"name": "supermidia",
+			"save-password": true,
+			"navigator-show-only-entities": true,
+			"navigator-hide-folders": true,
+			"navigator-hide-virtual": true,
+			"configuration": {
+				"host": "localhost",
+				"port": "3306",
+				"database": "supermidia",
+				"url": "jdbc:mysql://localhost:3306/supermidia",
+				"configurationType": "MANUAL",
+				"home": "/usr",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"auth-model": "native"
+			}
+		}
+	},
+	"virtual-models": {"mysql8-1988cc925b9-6796fd549bb606c6":{"supermidia":{":pessoas":{"attributes":{"id":{"transforms":{"custom":"org.jkiss.dbeaver.core.UUIDAttributeTransformer","properties":{"type":"Version1","case":"Lower case"}}}}},":clientes":{"attributes":{"pessoa_id":{"transforms":{"custom":"org.jkiss.dbeaver.core.UUIDAttributeTransformer","properties":{"type":"Version1","case":"Lower case"}}}}},":usuarios":{"attributes":{"pessoa_id":{"transforms":{"custom":"org.jkiss.dbeaver.core.UUIDAttributeTransformer","properties":{"type":"Version1","case":"Lower case"}}}}},":materiais":{"attributes":{"id":{"transforms":{"custom":"org.jkiss.dbeaver.core.UUIDAttributeTransformer","properties":{"type":"Version1","case":"Lower case"}}}}},":servicos":{"attributes":{"id":{"transforms":{"custom":"org.jkiss.dbeaver.core.UUIDAttributeTransformer","properties":{"type":"Version1","case":"Lower case"}}}}}}}},
+	"connection-types": {
+		"dev": {
+			"name": "Development",
+			"color": "255,255,255",
+			"description": "Regular development database",
+			"auto-commit": true,
+			"confirm-execute": false,
+			"confirm-data-change": false,
+			"smart-commit": false,
+			"smart-commit-recover": true,
+			"auto-close-transactions": true,
+			"close-transactions-period": 1800,
+			"auto-close-connections": true,
+			"close-connections-period": 14400
+		}
+	}
+}
