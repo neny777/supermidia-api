@@ -51,15 +51,18 @@ Cada produto-template **define o seu próprio markup** (sem padrão global). Pre
 
 Efêmero na fase de orçar (preview).
 
-### 5. Pedido — NOVO
+### 5. Venda (Orçamento / Ordem de Serviço) — NOVO
+**Uma única entidade `Venda`** com `status` — não dois cadastros. O documento evolui de orçamento para OS por **mudança de status** (não há herança/subtipo). Na UI vira duas telas: "Orçamentos" e "Ordens de Serviço".
+
 ```
-Pedido
+Venda
  ├─ cliente            (→ define atacado/varejo via categoria)
- ├─ data, status
- ├─ itens: [ItemPedido]
+ ├─ status             (ORCAMENTO | ORDEM_SERVICO | CANCELADO; futuro: EM_PRODUCAO, ENTREGUE)
+ ├─ dataCriacao        (base da validade de 15 dias do orçamento)
+ ├─ itens: [ItemVenda]
  └─ total
 
-ItemPedido  ("memória de cálculo" congelada / snapshot)
+ItemVenda  ("memória de cálculo" congelada / snapshot)
  ├─ produtoId + produtoNome   (qual template gerou)
  ├─ altura, largura, quantidade
  ├─ detalhamento[]   (insumo, qtd calculada, custo unit. CONGELADO, subtotal)
@@ -69,7 +72,13 @@ ItemPedido  ("memória de cálculo" congelada / snapshot)
  └─ precoFinal       (editável — único override)
 ```
 
-**Imutabilidade:** o produto-template aponta para o catálogo vivo; o `ItemPedido` guarda uma **fotografia** do cálculo. Mudança de preço no catálogo **não** altera pedido já feito. A memória de cálculo é auditável e reproduzível.
+**Imutabilidade:** o produto-template aponta para o catálogo vivo; o `ItemVenda` guarda uma **fotografia** do cálculo. Mudança de preço no catálogo **não** altera venda já feita. A memória de cálculo é auditável e reproduzível.
+
+**Por que estado e não herança (padrão Pessoa):** Pessoa→Cliente/Fornecedor/etc. são papéis que *coexistem* num mesmo indivíduo; orçamento e OS são *fases sequenciais* do mesmo documento. Estado (campo `status`) preserva identidade e histórico na conversão; subtipo exigiria recriar a linha (perdendo ambos).
+
+**Validade do orçamento:** 15 dias, calculada como estado *derivado* (`dataCriacao + 15d < hoje`), sem rotina/agendador. Ao abrir um orçamento vencido: avisar e oferecer **"Recalcular/Renovar"** (reprocessa com preços atuais, regrava snapshot, reinicia os 15 dias) ou **"Cancelar"**. Futuramente o "15" migra para uma configuração global do sistema.
+
+**Cabeçalho adiado:** forma de pagamento, forma de entrega, prazo de entrega e desconto no pedido serão modelados depois.
 
 ## Decisões fixadas (2026-06-26)
 
@@ -77,8 +86,10 @@ ItemPedido  ("memória de cálculo" congelada / snapshot)
 |---|---|
 | Margem | Markup **por produto-template**; sem default global |
 | Atacado × Varejo | Definido pela **categoria do cliente** (REVENDA→atacado, FINAL→varejo) |
-| Override no pedido | **Apenas o `precoFinal`** do item. Quantidade de insumo é sempre auto-calculada |
-| "Fixo" (R$5) | Por **item** (não por pedido) |
+| Override na venda | **Apenas o `precoFinal`** do item. Quantidade de insumo é sempre auto-calculada |
+| "Fixo" (R$5) | Por **item** (não por venda) |
+| Entidade da venda | Nome interno **`Venda`** (UI: "Orçamentos"/"Ordens de Serviço"); **um registro + status**, sem herança |
+| Validade do orçamento | **15 dias** (derivado); vencido → "Recalcular/Renovar" ou "Cancelar" |
 | Bastão | Tratado por **unidade** (não por comprimento/tabela) |
 | Regras "espertas" (#3) | **Fora de escopo** por ora: condicional por dimensão, seleção por tabela, sobretaxa de peça pequena |
 | `permiteOverrideParametro` | Flag fica **dormente** nesta fase (mantida, não usada) |
@@ -92,4 +103,4 @@ Decodificada dos scripts PHP legados em `calculadoras/` (smlona, smbanner, smimp
 1. **`UNIDADE_FIXA`** no motor (+ testes) — desbloqueia os produtos legados; pequeno e isolado.
 2. **Markup no Produto** + seleção por `Cliente.categoria` no motor — fecha a precificação de orçamento.
 3. **Validar** reproduzindo `smlona`/`smbanner` como produtos-template (prova real da arquitetura).
-4. **Camada Pedido** (`Pedido` + `ItemPedido` com snapshot).
+4. **Camada Venda** (`Venda` + `ItemVenda` com snapshot; status ORCAMENTO/ORDEM_SERVICO/CANCELADO).
