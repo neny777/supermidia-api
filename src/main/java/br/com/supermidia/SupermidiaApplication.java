@@ -1,4 +1,3 @@
-
 package br.com.supermidia;
 
 import org.springframework.boot.SpringApplication;
