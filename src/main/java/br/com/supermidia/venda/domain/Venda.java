@@ -34,6 +34,9 @@ import jakarta.persistence.Table;
 @Table(name = "vendas")
 public class Venda {
 
+	/** Validade padrão do orçamento em dias (futuro: configuração global do sistema). */
+	public static final int VALIDADE_ORCAMENTO_DIAS = 15;
+
 	@Id
 	@JdbcTypeCode(SqlTypes.BINARY)
 	@Column(name = "id", columnDefinition = "BINARY(16)")
@@ -78,6 +81,35 @@ public class Venda {
 				.filter(Objects::nonNull)
 				.reduce(BigDecimal.ZERO, BigDecimal::add)
 				.setScale(2, RoundingMode.HALF_UP);
+	}
+
+	/** Orçamento vencido = passou da validade (só se aplica a orçamentos). */
+	public boolean isVencido() {
+		return status == StatusVenda.ORCAMENTO && dataCriacao != null
+				&& dataCriacao.plusDays(VALIDADE_ORCAMENTO_DIAS).isBefore(LocalDateTime.now());
+	}
+
+	/** Converte o orçamento em ordem de serviço. */
+	public void converterParaOrdemServico() {
+		if (status != StatusVenda.ORCAMENTO) {
+			throw new IllegalStateException("Somente orçamentos podem ser convertidos em ordem de serviço.");
+		}
+		if (isVencido()) {
+			throw new IllegalStateException("Orçamento vencido: recalcule antes de converter em ordem de serviço.");
+		}
+		this.status = StatusVenda.ORDEM_SERVICO;
+	}
+
+	public void cancelar() {
+		if (status == StatusVenda.CANCELADO) {
+			throw new IllegalStateException("A venda já está cancelada.");
+		}
+		this.status = StatusVenda.CANCELADO;
+	}
+
+	/** Reinicia a contagem de validade (usado ao recalcular um orçamento). */
+	public void renovarValidade() {
+		this.dataCriacao = LocalDateTime.now();
 	}
 
 	public void setItens(List<ItemVenda> itens) {

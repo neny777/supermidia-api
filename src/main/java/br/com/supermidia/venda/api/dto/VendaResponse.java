@@ -12,6 +12,7 @@ public class VendaResponse {
 	private UUID id;
 	private UUID clienteId;
 	private StatusVenda status;
+	private boolean vencido;
 	private LocalDateTime dataCriacao;
 	private BigDecimal total;
 	private List<VendaItemResponse> itens = new ArrayList<>();
@@ -38,6 +39,14 @@ public class VendaResponse {
 
 	public void setStatus(StatusVenda status) {
 		this.status = status;
+	}
+
+	public boolean isVencido() {
+		return vencido;
+	}
+
+	public void setVencido(boolean vencido) {
+		this.vencido = vencido;
 	}
 
 	public LocalDateTime getDataCriacao() {

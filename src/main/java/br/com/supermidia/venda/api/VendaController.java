@@ -48,4 +48,19 @@ public class VendaController {
 	public ResponseEntity<VendaResponse> findById(@PathVariable UUID id) {
 		return ResponseEntity.ok(mapper.toResponse(service.findById(id)));
 	}
+
+	@PostMapping("/{id}/ordem-servico")
+	public ResponseEntity<VendaResponse> converterParaOrdemServico(@PathVariable UUID id) {
+		return ResponseEntity.ok(mapper.toResponse(service.converterParaOrdemServico(id)));
+	}
+
+	@PostMapping("/{id}/cancelar")
+	public ResponseEntity<VendaResponse> cancelar(@PathVariable UUID id) {
+		return ResponseEntity.ok(mapper.toResponse(service.cancelar(id)));
+	}
+
+	@PostMapping("/{id}/recalcular")
+	public ResponseEntity<VendaResponse> recalcular(@PathVariable UUID id) {
+		return ResponseEntity.ok(mapper.toResponse(service.recalcular(id)));
+	}
 }

@@ -14,6 +14,7 @@ import br.com.supermidia.venda.domain.Venda;
 public interface VendaMapper {
 
 	@Mapping(target = "clienteId", source = "cliente.id")
+	@Mapping(target = "vencido", expression = "java(entity.isVencido())")
 	VendaResponse toResponse(Venda entity);
 
 	VendaItemResponse toResponse(ItemVenda entity);

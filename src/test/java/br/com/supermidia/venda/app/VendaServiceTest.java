@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -112,6 +113,52 @@ class VendaServiceTest {
 				.assertThatThrownBy(() -> vendaService.criarOrcamento(request(clienteId, UUID.randomUUID())))
 				.isInstanceOf(VendaValidationException.class)
 				.hasMessageContaining("Cliente não encontrado");
+	}
+
+	@Test
+	void recalcularDeveAtualizarOSnapshotComPrecosAtuaisERenovarAValidade() {
+		UUID vendaId = UUID.randomUUID();
+		UUID produtoId = UUID.randomUUID();
+
+		Venda venda = new Venda();
+		venda.setCliente(cliente(UUID.randomUUID(), Categoria.R));
+		venda.setStatus(StatusVenda.ORCAMENTO);
+		venda.setDataCriacao(LocalDateTime.now().minusDays(20)); // orçamento antigo/vencido
+		ItemVenda item = new ItemVenda();
+		item.setProdutoId(produtoId);
+		item.setAltura(new BigDecimal("100"));
+		item.setLargura(new BigDecimal("200"));
+		item.setQuantidade(new BigDecimal("2"));
+		item.setCustoTotal(new BigDecimal("50.00")); // valores antigos
+		item.setPrecoSugerido(new BigDecimal("90.00"));
+		item.setPrecoFinal(new BigDecimal("999.00")); // override manual antigo
+		venda.addItem(item);
+
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "135.25"));
+		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Venda recalculada = vendaService.recalcular(vendaId);
+
+		ItemVenda atualizado = recalculada.getItens().get(0);
+		assertThat(atualizado.getCustoTotal()).isEqualByComparingTo("75.14"); // preço atual
+		assertThat(atualizado.getPrecoSugerido()).isEqualByComparingTo("135.25");
+		assertThat(atualizado.getPrecoFinal()).isEqualByComparingTo("135.25"); // override resetado
+		assertThat(atualizado.getDetalhes()).hasSize(2);
+		assertThat(recalculada.getTotal()).isEqualByComparingTo("135.25");
+		assertThat(recalculada.isVencido()).isFalse(); // validade renovada
+	}
+
+	@Test
+	void recalcularDeveFalharSeNaoForOrcamento() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.ORDEM_SERVICO);
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.recalcular(vendaId))
+				.isInstanceOf(VendaValidationException.class)
+				.hasMessageContaining("orçamentos");
 	}
 
 	// --- fixtures ---
