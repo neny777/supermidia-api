@@ -16,10 +16,11 @@ public final class Permissoes {
 	public static final String MATERIAS = "materias";
 	public static final String SERVICOS = "servicos";
 	public static final String PRODUTOS = "produtos";
+	public static final String VENDAS = "vendas";
 	public static final String USUARIOS = "usuarios";
 
 	public static final Set<String> TODAS = Set.of(CLIENTES, COLABORADORES, FORNECEDORES, PARCEIROS, GRUPOS,
-			MATERIAS, SERVICOS, PRODUTOS, USUARIOS);
+			MATERIAS, SERVICOS, PRODUTOS, VENDAS, USUARIOS);
 
 	private Permissoes() {
 	}
