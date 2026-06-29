@@ -6,6 +6,7 @@ target/
 
 ### STS ###
 *.bak
+.dbeaver/
 .apt_generated
 .classpath
 .factorypath
