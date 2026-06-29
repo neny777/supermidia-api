@@ -92,11 +92,13 @@ class ProdutoCalculoLonaCenarioTest {
 		assertThat(response.getTotalServicos()).isEqualByComparingTo("46.00"); // 34,00 + 12,00
 		assertThat(response.getTotalGeral()).isEqualByComparingTo("94.34"); // custo total
 
-		// --- Preços (markup atacado 80% / varejo 120%) ---
-		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("169.81"); // 94,34 x 1,80
-		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("207.55"); // 94,34 x 2,20
+		// --- Preços (margem automática) ---
+		// razão serviço/material = 46,00/48,34 ≈ 0,9516 ; 1 - 0,9516 < 0,35 => trava no piso de 35%
+		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("35.00");
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("127.36"); // 94,34 x 1,35
+		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("176.34"); // 127,36 x 1,3846
 		// Cliente REVENDA => preço sugerido é o de atacado
-		assertThat(response.getPrecoSugerido()).isEqualByComparingTo("169.81");
+		assertThat(response.getPrecoSugerido()).isEqualByComparingTo("127.36");
 	}
 
 	// --- montagem do template ---
@@ -105,8 +107,6 @@ class ProdutoCalculoLonaCenarioTest {
 		Produto produto = new Produto();
 		produto.setId(produtoId);
 		produto.setNome("LONA 440 BASICA");
-		produto.setMarkupAtacado(new BigDecimal("80"));
-		produto.setMarkupVarejo(new BigDecimal("120"));
 
 		ProdutoMateriaCalculo lona = materiaCalculo(
 				materia("LONA", UnidadeMateria.M2, "8.50"),

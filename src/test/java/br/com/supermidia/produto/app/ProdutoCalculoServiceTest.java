@@ -18,11 +18,14 @@ import br.com.supermidia.calculo.domain.BaseOperacionalCalculo;
 import br.com.supermidia.calculo.domain.Calculo;
 import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
+import br.com.supermidia.materia.domain.Materia;
+import br.com.supermidia.materia.domain.UnidadeMateria;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
 import br.com.supermidia.produto.domain.Produto;
+import br.com.supermidia.produto.domain.ProdutoMateriaCalculo;
 import br.com.supermidia.produto.domain.ProdutoServicoCalculo;
 import br.com.supermidia.produto.domain.ProdutoServicoParametroCalculo;
 import br.com.supermidia.servico.domain.Servico;
@@ -88,53 +91,51 @@ class ProdutoCalculoServiceTest {
 	}
 
 	@Test
-	void deveAplicarMarkupDeAtacadoEVarejoSobreOCusto() {
-		// custo = 2un * 3 peças * R$1,50 = R$9,00; atacado +80% => 16,20; varejo +120% => 19,80
+	void margemAutomaticaCresceQuandoOMaterialDominaOCusto() {
+		// material 100 (1 m² x R$100) + serviço 30 (1 un x R$30) => custo 130
+		// razão serviço/material = 0,30 => margem atacado = 1 - 0,30 = 0,70 (acima do piso)
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoComMaterialEServico(produtoId, "100", "30", "1");
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "100", "1"));
+
+		assertThat(response.getTotalMateriais()).isEqualByComparingTo("100.00");
+		assertThat(response.getTotalServicos()).isEqualByComparingTo("30.00");
+		assertThat(response.getTotalGeral()).isEqualByComparingTo("130.00");
+		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("70.00"); // 70%
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("221.00"); // 130 x 1,70
+		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("306.00"); // 221 x 1,3846
+		assertThat(response.getPrecoSugerido()).isNull(); // sem categoria
+	}
+
+	@Test
+	void semCustoDeMaterialDeveAplicarOPisoDe35() {
+		// serviço puro (sem material): custo 9,00 => margem trava no piso de 35%
 		UUID produtoId = UUID.randomUUID();
 		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
-		produto.setMarkupAtacado(new BigDecimal("80"));
-		produto.setMarkupVarejo(new BigDecimal("120"));
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "80", "3"));
 
-		assertThat(response.getTotalGeral()).isEqualByComparingTo("9.00");
-		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("80");
-		assertThat(response.getMarkupVarejo()).isEqualByComparingTo("120");
-		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("16.20");
-		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("19.80");
-		// sem categoria informada, não há preço sugerido
-		assertThat(response.getPrecoSugerido()).isNull();
+		assertThat(response.getTotalMateriais()).isEqualByComparingTo("0.00");
+		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("35.00");
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("12.15"); // 9,00 x 1,35
 	}
 
 	@Test
 	void deveSugerirAtacadoParaRevendaEVarejoParaConsumidorFinal() {
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
-		produto.setMarkupAtacado(new BigDecimal("80"));
-		produto.setMarkupVarejo(new BigDecimal("120"));
+		Produto produto = produtoComMaterialEServico(produtoId, "100", "30", "1");
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
-		ProdutoCalculoRequest revenda = request("100", "80", "3");
+		ProdutoCalculoRequest revenda = request("100", "100", "1");
 		revenda.setCategoria(Categoria.R);
-		ProdutoCalculoRequest finalConsumidor = request("100", "80", "3");
+		ProdutoCalculoRequest finalConsumidor = request("100", "100", "1");
 		finalConsumidor.setCategoria(Categoria.F);
 
-		assertThat(calculoService.calcular(produtoId, revenda).getPrecoSugerido()).isEqualByComparingTo("16.20");
-		assertThat(calculoService.calcular(produtoId, finalConsumidor).getPrecoSugerido()).isEqualByComparingTo("19.80");
-	}
-
-	@Test
-	void markupNuloDeveResultarEmPrecoIgualAoCusto() {
-		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
-		// markups não informados (null)
-		when(produtoService.findById(produtoId)).thenReturn(produto);
-
-		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "80", "3"));
-
-		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("9.00");
-		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("9.00");
+		assertThat(calculoService.calcular(produtoId, revenda).getPrecoSugerido()).isEqualByComparingTo("221.00");
+		assertThat(calculoService.calcular(produtoId, finalConsumidor).getPrecoSugerido()).isEqualByComparingTo("306.00");
 	}
 
 	// --- fixtures ---
@@ -166,6 +167,50 @@ class ProdutoCalculoServiceTest {
 		Produto produto = new Produto();
 		produto.setId(produtoId);
 		produto.setNome("PRODUTO TESTE");
+		produto.setServicosCalculo(List.of(servicoCalculo));
+		return produto;
+	}
+
+	private Produto produtoComMaterialEServico(UUID produtoId, String materiaPreco, String servicoPreco,
+			String quantidadeFixa) {
+		// Matéria por área (AREA_BASE)
+		Materia materia = new Materia();
+		materia.setId(UUID.randomUUID());
+		materia.setNome("LONA");
+		materia.setUnidade(UnidadeMateria.M2);
+		materia.setPreco(new BigDecimal(materiaPreco));
+		Calculo calcMateria = new Calculo();
+		calcMateria.setId(UUID.randomUUID());
+		calcMateria.setNome("AREA");
+		calcMateria.setTipoCalculo(TipoCalculo.AREA_BASE);
+		calcMateria.setBaseOperacional(BaseOperacionalCalculo.AREA);
+		ProdutoMateriaCalculo materiaCalculo = new ProdutoMateriaCalculo();
+		materiaCalculo.setMateria(materia);
+		materiaCalculo.setCalculo(calcMateria);
+
+		// Serviço por unidade (UNIDADE_FIXA)
+		Servico servico = new Servico();
+		servico.setId(UUID.randomUUID());
+		servico.setNome("TAXA");
+		servico.setUnidade(UnidadeServico.UN);
+		servico.setPreco(new BigDecimal(servicoPreco));
+		Calculo calcServico = new Calculo();
+		calcServico.setId(UUID.randomUUID());
+		calcServico.setNome("TAXA POR UNIDADE");
+		calcServico.setTipoCalculo(TipoCalculo.UNIDADE_FIXA);
+		calcServico.setBaseOperacional(BaseOperacionalCalculo.QUANTIDADE_INFORMADA);
+		ProdutoServicoCalculo servicoCalculo = new ProdutoServicoCalculo();
+		servicoCalculo.setServico(servico);
+		servicoCalculo.setCalculo(calcServico);
+		ProdutoServicoParametroCalculo parametro = new ProdutoServicoParametroCalculo();
+		parametro.setCodigo(CodigoParametroCalculo.QUANTIDADE_FIXA);
+		parametro.setValor(new BigDecimal(quantidadeFixa));
+		servicoCalculo.setParametros(List.of(parametro));
+
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("PRODUTO MAT+SERV");
+		produto.setMateriasCalculo(List.of(materiaCalculo));
 		produto.setServicosCalculo(List.of(servicoCalculo));
 		return produto;
 	}

@@ -31,6 +31,9 @@ public class ProdutoCalculoService {
 	private static final BigDecimal DEZ_MIL = new BigDecimal("10000");
 	private static final int SCALE_QUANTIDADE = 4;
 	private static final int SCALE_VALOR = 2;
+	// Constantes de margem (futuramente uma configuração global do sistema).
+	private static final BigDecimal PISO_MARGEM = new BigDecimal("0.35");
+	private static final BigDecimal FATOR_VAREJO = new BigDecimal("1.3846");
 
 	private final ProdutoService produtoService;
 
@@ -73,17 +76,26 @@ public class ProdutoCalculoService {
 		response.setTotalServicos(totalServicos);
 		response.setTotalGeral(custoTotal);
 
-		aplicarPrecificacao(response, produto, custoTotal, request.getCategoria());
+		aplicarPrecificacao(response, totalMateriais, totalServicos, custoTotal, request.getCategoria());
 
 		return response;
 	}
 
-	private void aplicarPrecificacao(ProdutoCalculoResponse response, Produto produto, BigDecimal custoTotal,
-			Categoria categoria) {
-		BigDecimal markupAtacado = nuloComoZero(produto.getMarkupAtacado());
-		BigDecimal markupVarejo = nuloComoZero(produto.getMarkupVarejo());
-		BigDecimal precoAtacado = aplicarMarkup(custoTotal, markupAtacado);
-		BigDecimal precoVarejo = aplicarMarkup(custoTotal, markupVarejo);
+	/**
+	 * Margem automática: a margem de atacado emerge da composição de custo do item
+	 * (material puxa margem, mão de obra não, piso de 35%); o varejo é o atacado
+	 * multiplicado por um fator fixo. Os percentuais são guardados sobre o custo.
+	 */
+	private void aplicarPrecificacao(ProdutoCalculoResponse response, BigDecimal custoMateriais,
+			BigDecimal custoServicos, BigDecimal custoTotal, Categoria categoria) {
+		BigDecimal margemAtacado = calcularMargemAtacado(custoMateriais, custoServicos);
+		BigDecimal precoAtacado = custoTotal.multiply(BigDecimal.ONE.add(margemAtacado))
+				.setScale(SCALE_VALOR, RoundingMode.HALF_UP);
+		BigDecimal precoVarejo = precoAtacado.multiply(FATOR_VAREJO).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
+
+		BigDecimal markupAtacado = margemAtacado.multiply(CEM).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
+		BigDecimal markupVarejo = BigDecimal.ONE.add(margemAtacado).multiply(FATOR_VAREJO).subtract(BigDecimal.ONE)
+				.multiply(CEM).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
 
 		response.setMarkupAtacado(markupAtacado);
 		response.setMarkupVarejo(markupVarejo);
@@ -95,12 +107,12 @@ public class ProdutoCalculoService {
 		}
 	}
 
-	private BigDecimal aplicarMarkup(BigDecimal custoTotal, BigDecimal markupPercentual) {
-		return custoTotal.multiply(CEM.add(markupPercentual)).divide(CEM, SCALE_VALOR, RoundingMode.HALF_UP);
-	}
-
-	private BigDecimal nuloComoZero(BigDecimal valor) {
-		return valor == null ? BigDecimal.ZERO : valor;
+	private BigDecimal calcularMargemAtacado(BigDecimal custoMateriais, BigDecimal custoServicos) {
+		if (custoMateriais.signum() <= 0) {
+			return PISO_MARGEM; // sem material não há razão a calcular: aplica o piso
+		}
+		BigDecimal razao = custoServicos.divide(custoMateriais, 10, RoundingMode.HALF_UP);
+		return BigDecimal.ONE.subtract(razao).max(PISO_MARGEM);
 	}
 
 	private ProdutoCalculoItemResponse calcularMateria(ProdutoMateriaCalculo item, ProdutoCalculoContext context) {
