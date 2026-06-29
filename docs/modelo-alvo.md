@@ -37,19 +37,19 @@ ERP de orçamentação para gráfica / comunicação visual, de **uso interno**.
 ### 2. Cálculo — existe + 1 ajuste
 `Calculo` modela a regra de consumo (área, perímetro, unidade). **Pendência: implementar `UNIDADE_FIXA`** no motor (hoje lança "não implementado") — cobre bastão, ponteira, grampo e o "fixo".
 
-### 3. Produto (template) — existe + markup
-Composição de matérias/serviços (cada um amarrado a um `Calculo`). **Acrescentar dois campos no `Produto`:**
-- `markupAtacado`
-- `markupVarejo`
+### 3. Produto (template)
+Composição de matérias/serviços (cada um amarrado a um `Calculo`). **Não carrega margem** — a margem é automática (ver camada 4).
 
-Cada produto-template **define o seu próprio markup** (sem padrão global). Preço: `precoSugerido = custoTotal × (1 + markup)`. A separação material/serviço é mantida apenas para **detalhamento**, não para formar margem.
+> **Revisão 2026-06-29:** a 1ª versão pôs markup MANUAL por produto (`markupAtacado`/`markupVarejo`); foi implementada e depois **descartada**. A empresa precifica com **margem automática** (fórmula do PHP, fruto de meses de teste). Esses campos serão **removidos** do produto, DTOs, mapper, motor e formulário.
 
-### 4. Motor — existe + extensão
-`ProdutoCalculoService` já calcula o custo. Estender para, conforme `Cliente.categoria`, escolher o markup e devolver o **preço sugerido** com o detalhamento:
-- `Cliente.categoria = REVENDA` → markup **atacado**
-- `Cliente.categoria = FINAL` → markup **varejo**
+### 4. Motor — margem automática por item
+`ProdutoCalculoService` calcula o custo (separando `totalMateriais` e `totalServicos`) e aplica a margem automática **por item**:
+- `margemAtacado = max(0,35 ; 1 − custoServiço/custoMaterial)` — material puxa margem, mão de obra não, piso 35%. **Sem material → 35%** (não divide).
+- `preçoVarejo = preçoAtacado × 1,3846` (fator 1,8/1,3, 4 casas).
+- Atacado vs varejo pela `Cliente.categoria` (REVENDA→atacado, FINAL→varejo).
+- Preços em centavos. Constantes (0,35 e 1,3846) fixas por ora → futura **config global**.
 
-Efêmero na fase de orçar (preview).
+Efêmero na fase de orçar (preview); congelado no `ItemVenda` ao criar a venda.
 
 ### 5. Venda (Orçamento / Ordem de Serviço) — NOVO
 **Uma única entidade `Venda`** com `status` — não dois cadastros. O documento evolui de orçamento para OS por **mudança de status** (não há herança/subtipo). Na UI vira duas telas: "Orçamentos" e "Ordens de Serviço".
@@ -84,7 +84,7 @@ ItemVenda  ("memória de cálculo" congelada / snapshot)
 
 | Tema | Decisão |
 |---|---|
-| Margem | Markup **por produto-template**; sem default global |
+| Margem | **Automática por item** (revisão 2026-06-29): `max(0,35; 1−custoServiço/custoMaterial)`, sem material → 35%; varejo = atacado × 1,3846. Constantes → futura config global. (Markup manual por produto foi descartado.) |
 | Atacado × Varejo | Definido pela **categoria do cliente** (REVENDA→atacado, FINAL→varejo) |
 | Override na venda | **Apenas o `precoFinal`** do item. Quantidade de insumo é sempre auto-calculada |
 | "Fixo" (R$5) | Por **item** (não por venda) |
@@ -96,7 +96,7 @@ ItemVenda  ("memória de cálculo" congelada / snapshot)
 
 ## Origem da lógica de preço
 
-Decodificada dos scripts PHP legados em `calculadoras/` (smlona, smbanner, smimpressaocomrecorte, smimpressaosemrecorte + `precos.php`). Cada script é um produto-template hardcoded; o sistema novo os torna configuráveis como dado. A heurística antiga de margem (`max(0,35; 1 − serviço/material)` e varejo = atacado × 1,8/1,3) foi **substituída** por markup explícito por produto.
+Decodificada dos scripts PHP legados em `calculadoras/` (smlona, smbanner, smimpressaocomrecorte, smimpressaosemrecorte + `precos.php`). Cada script é um produto-template hardcoded; o sistema novo os torna configuráveis como dado. A margem da empresa segue a **fórmula automática do PHP** (`max(0,35; 1 − custoServiço/custoMaterial)` e varejo = atacado × 1,3846) — validada por meses de uso. A tentativa de markup manual por produto foi descartada (ver revisão 2026-06-29 acima).
 
 ## Ordem de implementação
 
