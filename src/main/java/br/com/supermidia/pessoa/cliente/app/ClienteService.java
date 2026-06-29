@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import br.com.supermidia.pessoa.cliente.api.ClienteMapper;
 import br.com.supermidia.pessoa.cliente.api.dto.ClienteDTO;
@@ -14,18 +15,19 @@ import br.com.supermidia.pessoa.cliente.api.dto.ClienteFisicoDTO;
 import br.com.supermidia.pessoa.cliente.api.dto.ClienteJuridicoDTO;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
-import br.com.supermidia.pessoa.dominio.domain.Fisica;
-import br.com.supermidia.pessoa.dominio.infra.FisicaRepository;
-import br.com.supermidia.pessoa.dominio.domain.Juridica;
-import br.com.supermidia.pessoa.dominio.infra.JuridicaRepository;
-import br.com.supermidia.pessoa.dominio.domain.Pessoa;
-import br.com.supermidia.pessoa.dominio.infra.PessoaRepository;
 import br.com.supermidia.pessoa.dominio.app.PessoaService;
+import br.com.supermidia.pessoa.dominio.domain.Fisica;
+import br.com.supermidia.pessoa.dominio.domain.Juridica;
+import br.com.supermidia.pessoa.dominio.domain.Pessoa;
+import br.com.supermidia.pessoa.dominio.infra.FisicaRepository;
+import br.com.supermidia.pessoa.dominio.infra.JuridicaRepository;
+import br.com.supermidia.pessoa.dominio.infra.PessoaRepository;
 import br.com.supermidia.pessoa.shared.UniqueFieldRule;
 import br.com.supermidia.pessoa.shared.UniqueRuleEngine;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
+@Validated
 @Service
 public class ClienteService {
 	private final PessoaService pessoaService;

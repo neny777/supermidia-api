@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import br.com.supermidia.pessoa.fornecedor.api.FornecedorMapper;
 import br.com.supermidia.pessoa.fornecedor.api.dto.FornecedorDTO;
@@ -25,6 +26,7 @@ import br.com.supermidia.pessoa.shared.UniqueFieldRule;
 import br.com.supermidia.pessoa.shared.UniqueRuleEngine;
 import jakarta.validation.Valid;
 
+@Validated
 @Service
 public class FornecedorService {
 	private final PessoaService pessoaService;
