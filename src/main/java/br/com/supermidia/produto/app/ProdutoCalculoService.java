@@ -179,6 +179,8 @@ public class ProdutoCalculoService {
 		case PERIMETRO_COM_ESPACAMENTO -> calcularPorEspacamento(baseOperacional, parametros, context);
 		case UNIDADE_FIXA -> getParametroObrigatorio(parametros, CodigoParametroCalculo.QUANTIDADE_FIXA)
 				.multiply(context.quantidade());
+		// Taxa por item do orçamento (ex.: ajuste de arte): não escala com a quantidade.
+		case TAXA_FIXA -> getParametroObrigatorio(parametros, CodigoParametroCalculo.QUANTIDADE_FIXA);
 		case QUANTIDADE_INFORMADA, METRO_LINEAR_INFORMADO, SELECAO_POR_MEDIDA ->
 			throw new ProdutoCalculoValidationException(
 					"O tipo de cálculo " + tipoCalculo + " ainda não foi implementado na execução do produto.");

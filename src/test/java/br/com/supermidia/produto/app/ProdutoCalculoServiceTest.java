@@ -91,6 +91,22 @@ class ProdutoCalculoServiceTest {
 	}
 
 	@Test
+	void taxaFixaNaoDeveEscalarComAQuantidade() {
+		// Ajuste de arte: R$ 5,00 uma vez por item do orçamento, seja 1 ou 10 peças
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoComServicoTaxaFixa(produtoId, "AJUSTE DE ARTE SIMPLES", "5.00", "1");
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoResponse umaPeca = calculoService.calcular(produtoId, request("100", "80", "1"));
+		ProdutoCalculoResponse dezPecas = calculoService.calcular(produtoId, request("100", "80", "10"));
+
+		assertThat(umaPeca.getServicos().get(0).getQuantidadeCalculada()).isEqualByComparingTo("1");
+		assertThat(umaPeca.getServicos().get(0).getValorTotal()).isEqualByComparingTo("5.00");
+		assertThat(dezPecas.getServicos().get(0).getQuantidadeCalculada()).isEqualByComparingTo("1");
+		assertThat(dezPecas.getServicos().get(0).getValorTotal()).isEqualByComparingTo("5.00");
+	}
+
+	@Test
 	void margemAutomaticaCresceQuandoOMaterialDominaOCusto() {
 		// material 100 (1 m² x R$100) + serviço 30 (1 un x R$30) => custo 130
 		// razão serviço/material = 0,30 => margem atacado = 1 - 0,30 = 0,70 (acima do piso)
@@ -167,6 +183,35 @@ class ProdutoCalculoServiceTest {
 		Produto produto = new Produto();
 		produto.setId(produtoId);
 		produto.setNome("PRODUTO TESTE");
+		produto.setServicosCalculo(List.of(servicoCalculo));
+		return produto;
+	}
+
+	private Produto produtoComServicoTaxaFixa(UUID produtoId, String nomeServico, String preco, String quantidadeFixa) {
+		Servico servico = new Servico();
+		servico.setId(UUID.randomUUID());
+		servico.setNome(nomeServico);
+		servico.setUnidade(UnidadeServico.UN);
+		servico.setPreco(new BigDecimal(preco));
+
+		Calculo calculo = new Calculo();
+		calculo.setId(UUID.randomUUID());
+		calculo.setNome(nomeServico + " TAXA FIXA");
+		calculo.setTipoCalculo(TipoCalculo.TAXA_FIXA);
+		calculo.setBaseOperacional(BaseOperacionalCalculo.QUANTIDADE_INFORMADA);
+
+		ProdutoServicoParametroCalculo parametro = new ProdutoServicoParametroCalculo();
+		parametro.setCodigo(CodigoParametroCalculo.QUANTIDADE_FIXA);
+		parametro.setValor(new BigDecimal(quantidadeFixa));
+
+		ProdutoServicoCalculo servicoCalculo = new ProdutoServicoCalculo();
+		servicoCalculo.setServico(servico);
+		servicoCalculo.setCalculo(calculo);
+		servicoCalculo.setParametros(List.of(parametro));
+
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("PRODUTO TAXA FIXA");
 		produto.setServicosCalculo(List.of(servicoCalculo));
 		return produto;
 	}
