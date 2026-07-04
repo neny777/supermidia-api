@@ -19,6 +19,7 @@ import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
 import br.com.supermidia.materia.domain.Materia;
 import br.com.supermidia.materia.domain.UnidadeMateria;
+import br.com.supermidia.materia.infra.MateriaRepository;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
@@ -45,11 +46,14 @@ class ProdutoCalculoLonaCenarioTest {
 	@Mock
 	private ProdutoService produtoService;
 
+	@Mock
+	private MateriaRepository materiaRepository;
+
 	private ProdutoCalculoService calculoService;
 
 	@BeforeEach
 	void setUp() {
-		calculoService = new ProdutoCalculoService(produtoService);
+		calculoService = new ProdutoCalculoService(produtoService, materiaRepository);
 	}
 
 	@Test

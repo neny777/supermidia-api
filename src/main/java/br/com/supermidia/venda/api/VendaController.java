@@ -33,7 +33,7 @@ public class VendaController {
 
 	@PostMapping
 	public ResponseEntity<VendaResponse> create(@Valid @RequestBody VendaCreateRequest request) {
-		VendaResponse response = mapper.toResponse(service.criarOrcamento(request));
+		VendaResponse response = mapper.toResponse(service.criar(request));
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 

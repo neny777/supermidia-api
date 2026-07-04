@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,14 +22,19 @@ import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
 import br.com.supermidia.materia.domain.Materia;
 import br.com.supermidia.materia.domain.UnidadeMateria;
+import br.com.supermidia.materia.infra.MateriaRepository;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
+import br.com.supermidia.produto.api.dto.ProdutoEscolhaMateriaRequest;
 import br.com.supermidia.produto.domain.Produto;
 import br.com.supermidia.produto.domain.ProdutoComponente;
 import br.com.supermidia.produto.domain.ProdutoComponenteParametro;
+import br.com.supermidia.produto.domain.ProdutoGrupoOpcao;
 import br.com.supermidia.produto.domain.ProdutoMedida;
+import br.com.supermidia.produto.domain.ProdutoOpcao;
+import br.com.supermidia.produto.domain.ProdutoOpcaoContribuicao;
 import br.com.supermidia.produto.domain.ProdutoParametroVinculoMedida;
 import br.com.supermidia.produto.domain.TipoItemComponente;
 import br.com.supermidia.servico.domain.Servico;
@@ -39,11 +46,14 @@ class ProdutoCalculoServiceTest {
 	@Mock
 	private ProdutoService produtoService;
 
+	@Mock
+	private MateriaRepository materiaRepository;
+
 	private ProdutoCalculoService calculoService;
 
 	@BeforeEach
 	void setUp() {
-		calculoService = new ProdutoCalculoService(produtoService);
+		calculoService = new ProdutoCalculoService(produtoService, materiaRepository);
 	}
 
 	@Test
@@ -201,7 +211,197 @@ class ProdutoCalculoServiceTest {
 				.hasMessageContaining("LONAS");
 	}
 
+	@Test
+	void slotComEscolhaDeveUsarOPrecoDaMateriaEscolhida() {
+		UUID produtoId = UUID.randomUUID();
+		UUID componenteId = UUID.randomUUID();
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("IMPRESSAO EM LONA");
+		ProdutoComponente slot = new ProdutoComponente();
+		slot.setId(componenteId);
+		slot.setTipoItem(TipoItemComponente.MATERIA);
+		slot.setGrupoMateriaSlot("LONAS");
+		slot.setCalculo(calculo("AREA", TipoCalculo.AREA_BASE, BaseOperacionalCalculo.AREA));
+		produto.addComponente(slot);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		Materia lonaFosca = materia("LONA FOSCA", "12.00");
+		lonaFosca.setGrupo("LONAS");
+		when(materiaRepository.findById(lonaFosca.getId())).thenReturn(Optional.of(lonaFosca));
+
+		ProdutoCalculoRequest request = request("100", "100", "1");
+		request.setEscolhasMateria(List.of(escolha(componenteId, lonaFosca.getId())));
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request);
+
+		assertThat(response.getMateriais().get(0).getNome()).isEqualTo("LONA FOSCA");
+		assertThat(response.getMateriais().get(0).getValorTotal()).isEqualByComparingTo("12.00"); // 1 m² x 12
+	}
+
+	@Test
+	void escolhaDeMateriaForaDoGrupoDoSlotDeveFalhar() {
+		UUID produtoId = UUID.randomUUID();
+		UUID componenteId = UUID.randomUUID();
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("IMPRESSAO EM LONA");
+		ProdutoComponente slot = new ProdutoComponente();
+		slot.setId(componenteId);
+		slot.setTipoItem(TipoItemComponente.MATERIA);
+		slot.setGrupoMateriaSlot("LONAS");
+		slot.setCalculo(calculo("AREA", TipoCalculo.AREA_BASE, BaseOperacionalCalculo.AREA));
+		produto.addComponente(slot);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		Materia adesivo = materia("ADESIVO VINIL", "7.50");
+		adesivo.setGrupo("ADESIVOS");
+		when(materiaRepository.findById(adesivo.getId())).thenReturn(Optional.of(adesivo));
+
+		ProdutoCalculoRequest request = request("100", "100", "1");
+		request.setEscolhasMateria(List.of(escolha(componenteId, adesivo.getId())));
+
+		assertThatThrownBy(() -> calculoService.calcular(produtoId, request))
+				.isInstanceOf(ProdutoCalculoValidationException.class)
+				.hasMessageContaining("não pertence ao grupo");
+	}
+
+	@Test
+	void medidaObrigatoriaSemValorDeveFalhar() {
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoMaterialEServico(produtoId, "100", "30", "1");
+		ProdutoMedida medidaObrigatoria = medida("BORDA", null);
+		medidaObrigatoria.setObrigatoria(true);
+		produto.addMedida(medidaObrigatoria);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		assertThatThrownBy(() -> calculoService.calcular(produtoId, request("100", "100", "1")))
+				.isInstanceOf(ProdutoCalculoValidationException.class)
+				.hasMessageContaining("BORDA");
+	}
+
+	@Test
+	void medidaForaDosLimitesDeveFalhar() {
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoMaterialEServico(produtoId, "100", "30", "1");
+		ProdutoMedida borda = medida("BORDA", null);
+		borda.setMaximo(new BigDecimal("50"));
+		produto.addMedida(borda);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoRequest request = request("100", "100", "1");
+		request.setMedidas(Map.of("BORDA", new BigDecimal("80")));
+
+		assertThatThrownBy(() -> calculoService.calcular(produtoId, request))
+				.isInstanceOf(ProdutoCalculoValidationException.class)
+				.hasMessageContaining("no máximo");
+	}
+
+	@Test
+	void opcaoAtivaSomaCustoHerdaMargemEAplicaContribuicao() {
+		// Base: material 100 + serviço 30 => margem 70% (modelo A).
+		// Opção ILHÓS: serviço extra 50 + contribuição não usada pela base (sem acréscimos declarados).
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoMaterialEServico(produtoId, "100", "30", "1");
+
+		ProdutoOpcao comIlhos = new ProdutoOpcao();
+		comIlhos.setId(UUID.randomUUID());
+		comIlhos.setNome("COM ILHOS");
+		comIlhos.addComponente(componenteServico(servico("ILHOSAGEM", "50"),
+				calculo("ILHOSAGEM FIXA", TipoCalculo.UNIDADE_FIXA, BaseOperacionalCalculo.QUANTIDADE_INFORMADA),
+				param(CodigoParametroCalculo.QUANTIDADE_FIXA, "1")));
+		ProdutoGrupoOpcao grupo = new ProdutoGrupoOpcao();
+		grupo.setId(UUID.randomUUID());
+		grupo.setNome("ILHOS");
+		grupo.addOpcao(comIlhos);
+		produto.addGrupoOpcao(grupo);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoRequest request = request("100", "100", "1");
+		request.setEscolhasOpcao(List.of(comIlhos.getId()));
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request);
+
+		// custo total inclui a opção; margem continua a da base (70%)
+		assertThat(response.getTotalGeral()).isEqualByComparingTo("180.00"); // 130 + 50
+		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("70.00");
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("306.00"); // 180 x 1,70
+		// a linha da opção vem identificada
+		assertThat(response.getServicos()).anySatisfy(linha -> {
+			assertThat(linha.getNome()).isEqualTo("ILHOSAGEM");
+			assertThat(linha.getOpcaoNome()).isEqualTo("COM ILHOS");
+		});
+	}
+
+	@Test
+	void contribuicaoDaOpcaoDeveSomarNoParametroDaBase() {
+		// Base: lona AREA_COM_ACRESCIMOS (acréscimos 0) fator 1 a R$10/m².
+		// Opção contribui +20cm nos dois acréscimos => (1,20 x 1,20) = 1,44 m² = R$ 14,40.
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("LONA");
+		produto.addComponente(componenteMateria(materia("LONA", "10.00"),
+				calculo("AREA ACRESCIMOS", TipoCalculo.AREA_COM_ACRESCIMOS_E_FATOR, BaseOperacionalCalculo.AREA),
+				param(CodigoParametroCalculo.ACRESCIMO_ALTURA, "0"),
+				param(CodigoParametroCalculo.ACRESCIMO_LARGURA, "0"),
+				param(CodigoParametroCalculo.FATOR, "1")));
+
+		ProdutoOpcao opcao = new ProdutoOpcao();
+		opcao.setId(UUID.randomUUID());
+		opcao.setNome("COM BAINHA");
+		ProdutoOpcaoContribuicao contribuicaoAltura = new ProdutoOpcaoContribuicao();
+		contribuicaoAltura.setCodigo(CodigoParametroCalculo.ACRESCIMO_ALTURA);
+		contribuicaoAltura.setValor(new BigDecimal("20"));
+		opcao.addContribuicao(contribuicaoAltura);
+		ProdutoOpcaoContribuicao contribuicaoLargura = new ProdutoOpcaoContribuicao();
+		contribuicaoLargura.setCodigo(CodigoParametroCalculo.ACRESCIMO_LARGURA);
+		contribuicaoLargura.setValor(new BigDecimal("20"));
+		opcao.addContribuicao(contribuicaoLargura);
+		ProdutoGrupoOpcao grupo = new ProdutoGrupoOpcao();
+		grupo.setId(UUID.randomUUID());
+		grupo.setNome("BAINHA");
+		grupo.addOpcao(opcao);
+		produto.addGrupoOpcao(grupo);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoRequest request = request("100", "100", "1");
+		request.setEscolhasOpcao(List.of(opcao.getId()));
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request);
+
+		assertThat(response.getMateriais().get(0).getQuantidadeCalculada()).isEqualByComparingTo("1.44");
+		assertThat(response.getMateriais().get(0).getValorTotal()).isEqualByComparingTo("14.40");
+	}
+
+	@Test
+	void grupoObrigatorioSemEscolhaDeveFalhar() {
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = produtoMaterialEServico(produtoId, "100", "30", "1");
+		ProdutoOpcao opcao = new ProdutoOpcao();
+		opcao.setId(UUID.randomUUID());
+		opcao.setNome("RETO");
+		ProdutoGrupoOpcao grupo = new ProdutoGrupoOpcao();
+		grupo.setId(UUID.randomUUID());
+		grupo.setNome("RECORTE");
+		grupo.setObrigatorio(true);
+		grupo.addOpcao(opcao);
+		produto.addGrupoOpcao(grupo);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		assertThatThrownBy(() -> calculoService.calcular(produtoId, request("100", "100", "1")))
+				.isInstanceOf(ProdutoCalculoValidationException.class)
+				.hasMessageContaining("RECORTE");
+	}
+
 	// --- fixtures ---
+
+	private ProdutoEscolhaMateriaRequest escolha(UUID componenteId, UUID materiaId) {
+		ProdutoEscolhaMateriaRequest escolha = new ProdutoEscolhaMateriaRequest();
+		escolha.setComponenteId(componenteId);
+		escolha.setMateriaId(materiaId);
+		return escolha;
+	}
 
 	private Produto produtoSoServico(UUID produtoId, String nomeServico, String preco, TipoCalculo tipo,
 			ProdutoComponenteParametro... parametros) {

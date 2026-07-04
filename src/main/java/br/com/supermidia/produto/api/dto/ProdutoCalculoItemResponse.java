@@ -8,6 +8,8 @@ import br.com.supermidia.calculo.domain.TipoCalculo;
 public class ProdutoCalculoItemResponse {
 	private String nome;
 	private String tipoItem;
+	// Nome da opção que originou o item; nulo para componentes base.
+	private String opcaoNome;
 	private String calculo;
 	private TipoCalculo tipoCalculo;
 	private BaseOperacionalCalculo baseOperacional;
@@ -30,6 +32,14 @@ public class ProdutoCalculoItemResponse {
 
 	public void setTipoItem(String tipoItem) {
 		this.tipoItem = tipoItem;
+	}
+
+	public String getOpcaoNome() {
+		return opcaoNome;
+	}
+
+	public void setOpcaoNome(String opcaoNome) {
+		this.opcaoNome = opcaoNome;
 	}
 
 	public String getCalculo() {

@@ -68,6 +68,11 @@ public class ItemVenda {
 	@Column(name = "preco_final", precision = 12, scale = 2)
 	private BigDecimal precoFinal;
 
+	// Entrada original do item (JSON do request: medidas, escolhas) — permite
+	// recalcular com os preços atuais reproduzindo exatamente o que foi pedido.
+	@Column(name = "entrada_json", length = 4000)
+	private String entradaJson;
+
 	@OneToMany(mappedBy = "itemVenda", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<ItemVendaDetalhe> detalhes = new ArrayList<>();
 
@@ -177,6 +182,14 @@ public class ItemVenda {
 
 	public void setPrecoFinal(BigDecimal precoFinal) {
 		this.precoFinal = precoFinal;
+	}
+
+	public String getEntradaJson() {
+		return entradaJson;
+	}
+
+	public void setEntradaJson(String entradaJson) {
+		this.entradaJson = entradaJson;
 	}
 
 	public List<ItemVendaDetalhe> getDetalhes() {

@@ -12,12 +12,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.com.supermidia.calculo.domain.BaseOperacionalCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
@@ -45,8 +47,12 @@ class VendaServiceTest {
 	@Mock
 	private ProdutoCalculoService produtoCalculoService;
 
-	@InjectMocks
 	private VendaService vendaService;
+
+	@BeforeEach
+	void setUp() {
+		vendaService = new VendaService(vendaRepository, clienteRepository, produtoCalculoService, new ObjectMapper());
+	}
 
 	@Test
 	void deveCriarOrcamentoCongelandoOSnapshotComPrecoDeAtacadoParaRevenda() {
@@ -58,7 +64,7 @@ class VendaServiceTest {
 		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "135.25"));
 		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
 
-		Venda venda = vendaService.criarOrcamento(request(clienteId, produtoId));
+		Venda venda = vendaService.criar(request(clienteId, produtoId));
 
 		// a categoria do cliente foi repassada ao motor
 		ArgumentCaptor<ProdutoCalculoRequest> captor = ArgumentCaptor.forClass(ProdutoCalculoRequest.class);
@@ -97,7 +103,7 @@ class VendaServiceTest {
 		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "165.31"));
 		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
 
-		Venda venda = vendaService.criarOrcamento(request(clienteId, produtoId));
+		Venda venda = vendaService.criar(request(clienteId, produtoId));
 
 		ItemVenda item = venda.getItens().get(0);
 		assertThat(item.getMarkupAplicado()).isEqualByComparingTo("120"); // markup de varejo
@@ -110,7 +116,7 @@ class VendaServiceTest {
 		when(clienteRepository.findById(clienteId)).thenReturn(Optional.empty());
 
 		org.assertj.core.api.Assertions
-				.assertThatThrownBy(() -> vendaService.criarOrcamento(request(clienteId, UUID.randomUUID())))
+				.assertThatThrownBy(() -> vendaService.criar(request(clienteId, UUID.randomUUID())))
 				.isInstanceOf(VendaValidationException.class)
 				.hasMessageContaining("Cliente não encontrado");
 	}
@@ -159,6 +165,62 @@ class VendaServiceTest {
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.recalcular(vendaId))
 				.isInstanceOf(VendaValidationException.class)
 				.hasMessageContaining("orçamentos");
+	}
+
+	@Test
+	void deveCriarOrdemDeServicoDiretaQuandoSolicitado() {
+		UUID clienteId = UUID.randomUUID();
+		when(clienteRepository.findById(clienteId)).thenReturn(Optional.of(cliente(clienteId, Categoria.F)));
+		UUID produtoId = UUID.randomUUID();
+		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "165.31"));
+		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		VendaCreateRequest request = request(clienteId, produtoId);
+		request.setStatus(StatusVenda.ORDEM_SERVICO);
+
+		assertThat(vendaService.criar(request).getStatus()).isEqualTo(StatusVenda.ORDEM_SERVICO);
+	}
+
+	@Test
+	void criarJaCanceladaDeveFalhar() {
+		UUID clienteId = UUID.randomUUID();
+		when(clienteRepository.findById(clienteId)).thenReturn(Optional.of(cliente(clienteId, Categoria.F)));
+		VendaCreateRequest request = request(clienteId, UUID.randomUUID());
+		request.setStatus(StatusVenda.CANCELADO);
+
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.criar(request))
+				.isInstanceOf(VendaValidationException.class);
+	}
+
+	@Test
+	void recalcularDeveReproduzirMedidasEEscolhasGravadasNoSnapshot() {
+		UUID vendaId = UUID.randomUUID();
+		UUID produtoId = UUID.randomUUID();
+		UUID opcaoId = UUID.randomUUID();
+
+		Venda venda = new Venda();
+		venda.setCliente(cliente(UUID.randomUUID(), Categoria.R));
+		venda.setStatus(StatusVenda.ORCAMENTO);
+		venda.setDataCriacao(LocalDateTime.now());
+		ItemVenda item = new ItemVenda();
+		item.setProdutoId(produtoId);
+		item.setAltura(new BigDecimal("100"));
+		item.setLargura(new BigDecimal("200"));
+		item.setQuantidade(new BigDecimal("2"));
+		item.setEntradaJson("{\"altura\":100,\"largura\":200,\"quantidade\":2,"
+				+ "\"medidas\":{\"BORDA\":10},\"escolhasOpcao\":[\"" + opcaoId + "\"]}");
+		venda.addItem(item);
+
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "135.25"));
+		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		vendaService.recalcular(vendaId);
+
+		ArgumentCaptor<ProdutoCalculoRequest> captor = ArgumentCaptor.forClass(ProdutoCalculoRequest.class);
+		verify(produtoCalculoService).calcular(eq(produtoId), captor.capture());
+		assertThat(captor.getValue().getMedidas()).containsEntry("BORDA", new BigDecimal("10"));
+		assertThat(captor.getValue().getEscolhasOpcao()).containsExactly(opcaoId);
 	}
 
 	// --- fixtures ---

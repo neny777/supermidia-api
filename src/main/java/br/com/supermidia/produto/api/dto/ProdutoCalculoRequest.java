@@ -1,8 +1,14 @@
 package br.com.supermidia.produto.api.dto;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 
@@ -23,6 +29,16 @@ public class ProdutoCalculoRequest {
 	// Opcional: categoria do cliente que define qual preço sugerir (REVENDA -> atacado, FINAL -> varejo).
 	// Quando ausente, o motor devolve ambos os preços e deixa precoSugerido nulo.
 	private Categoria categoria;
+
+	// Medidas extras declaradas pelo produto (nome -> valor informado).
+	private Map<String, BigDecimal> medidas = new HashMap<>();
+
+	// Escolhas de material dos componentes-slot.
+	@Valid
+	private List<ProdutoEscolhaMateriaRequest> escolhasMateria = new ArrayList<>();
+
+	// Opções escolhidas (ids de ProdutoOpcao, no máximo uma por grupo).
+	private List<UUID> escolhasOpcao = new ArrayList<>();
 
 	public BigDecimal getAltura() {
 		return altura;
@@ -54,5 +70,29 @@ public class ProdutoCalculoRequest {
 
 	public void setCategoria(Categoria categoria) {
 		this.categoria = categoria;
+	}
+
+	public Map<String, BigDecimal> getMedidas() {
+		return medidas;
+	}
+
+	public void setMedidas(Map<String, BigDecimal> medidas) {
+		this.medidas = medidas;
+	}
+
+	public List<ProdutoEscolhaMateriaRequest> getEscolhasMateria() {
+		return escolhasMateria;
+	}
+
+	public void setEscolhasMateria(List<ProdutoEscolhaMateriaRequest> escolhasMateria) {
+		this.escolhasMateria = escolhasMateria;
+	}
+
+	public List<UUID> getEscolhasOpcao() {
+		return escolhasOpcao;
+	}
+
+	public void setEscolhasOpcao(List<UUID> escolhasOpcao) {
+		this.escolhasOpcao = escolhasOpcao;
 	}
 }

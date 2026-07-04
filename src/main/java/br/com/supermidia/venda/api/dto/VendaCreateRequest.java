@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import br.com.supermidia.venda.domain.StatusVenda;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +13,9 @@ public class VendaCreateRequest {
 
 	@NotNull(message = "O cliente é obrigatório.")
 	private UUID clienteId;
+
+	// Opcional: ORCAMENTO (default) ou ORDEM_SERVICO (venda direta, sem orçar).
+	private StatusVenda status;
 
 	@Valid
 	@NotEmpty(message = "Informe ao menos um item.")
@@ -23,6 +27,14 @@ public class VendaCreateRequest {
 
 	public void setClienteId(UUID clienteId) {
 		this.clienteId = clienteId;
+	}
+
+	public StatusVenda getStatus() {
+		return status;
+	}
+
+	public void setStatus(StatusVenda status) {
+		this.status = status;
 	}
 
 	public List<VendaItemRequest> getItens() {

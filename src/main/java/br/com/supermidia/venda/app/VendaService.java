@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
@@ -28,26 +30,34 @@ public class VendaService {
 	private final VendaRepository vendaRepository;
 	private final ClienteRepository clienteRepository;
 	private final ProdutoCalculoService produtoCalculoService;
+	private final ObjectMapper objectMapper;
 
 	public VendaService(VendaRepository vendaRepository, ClienteRepository clienteRepository,
-			ProdutoCalculoService produtoCalculoService) {
+			ProdutoCalculoService produtoCalculoService, ObjectMapper objectMapper) {
 		this.vendaRepository = vendaRepository;
 		this.clienteRepository = clienteRepository;
 		this.produtoCalculoService = produtoCalculoService;
+		this.objectMapper = objectMapper;
 	}
 
 	/**
-	 * Cria um orçamento: para cada item, roda o motor de cálculo com a categoria do
-	 * cliente e CONGELA o resultado (custos, preços e detalhamento) no snapshot.
+	 * Cria a venda (orçamento por padrão, ou OS direta): para cada item, roda o
+	 * motor com a categoria do cliente e CONGELA o resultado no snapshot, junto
+	 * da entrada original (medidas/escolhas) para permitir recalcular.
 	 */
 	@Transactional
-	public Venda criarOrcamento(VendaCreateRequest request) {
+	public Venda criar(VendaCreateRequest request) {
 		Cliente cliente = clienteRepository.findById(request.getClienteId())
 				.orElseThrow(() -> new VendaValidationException("Cliente não encontrado: " + request.getClienteId()));
 
+		StatusVenda statusInicial = request.getStatus() == null ? StatusVenda.ORCAMENTO : request.getStatus();
+		if (statusInicial == StatusVenda.CANCELADO) {
+			throw new VendaValidationException("Uma venda não pode ser criada já cancelada.");
+		}
+
 		Venda venda = new Venda();
 		venda.setCliente(cliente);
-		venda.setStatus(StatusVenda.ORCAMENTO);
+		venda.setStatus(statusInicial);
 
 		for (VendaItemRequest itemRequest : request.getItens()) {
 			venda.addItem(congelarItem(itemRequest, cliente.getCategoria()));
@@ -88,8 +98,9 @@ public class VendaService {
 	}
 
 	/**
-	 * Reprocessa um orçamento com os preços atuais do catálogo (regrava o snapshot
-	 * de cada item, reseta o preço final e reinicia a validade de 15 dias).
+	 * Reprocessa um orçamento com os preços atuais do catálogo, reproduzindo a
+	 * entrada original de cada item (medidas/escolhas gravadas no snapshot);
+	 * reseta o preço final e reinicia a validade de 15 dias.
 	 */
 	@Transactional
 	public Venda recalcular(UUID id) {
@@ -98,7 +109,7 @@ public class VendaService {
 			throw new VendaValidationException("Somente orçamentos podem ser recalculados.");
 		}
 		Categoria categoria = venda.getCliente() != null ? venda.getCliente().getCategoria() : null;
-		venda.getItens().forEach(item -> aplicarCalculo(item, categoria));
+		venda.getItens().forEach(item -> aplicarCalculo(item, reconstruirEntrada(item), categoria));
 		venda.renovarValidade();
 		venda.recalcularTotal();
 		return vendaRepository.save(venda);
@@ -110,17 +121,20 @@ public class VendaService {
 		item.setAltura(itemRequest.getAltura());
 		item.setLargura(itemRequest.getLargura());
 		item.setQuantidade(itemRequest.getQuantidade());
-		aplicarCalculo(item, categoria);
+		aplicarCalculo(item, itemRequest, categoria);
 		return item;
 	}
 
-	/** Roda o motor com as medidas do item e congela custo/markup/preços/detalhamento. */
-	private void aplicarCalculo(ItemVenda item, Categoria categoria) {
+	/** Roda o motor com a entrada do item e congela custo/margem/preços/detalhamento. */
+	private void aplicarCalculo(ItemVenda item, VendaItemRequest entrada, Categoria categoria) {
 		ProdutoCalculoRequest calculoRequest = new ProdutoCalculoRequest();
-		calculoRequest.setAltura(item.getAltura());
-		calculoRequest.setLargura(item.getLargura());
-		calculoRequest.setQuantidade(item.getQuantidade());
+		calculoRequest.setAltura(entrada.getAltura());
+		calculoRequest.setLargura(entrada.getLargura());
+		calculoRequest.setQuantidade(entrada.getQuantidade());
 		calculoRequest.setCategoria(categoria);
+		calculoRequest.setMedidas(entrada.getMedidas());
+		calculoRequest.setEscolhasMateria(entrada.getEscolhasMateria());
+		calculoRequest.setEscolhasOpcao(entrada.getEscolhasOpcao());
 
 		ProdutoCalculoResponse calculo = produtoCalculoService.calcular(item.getProdutoId(), calculoRequest);
 
@@ -129,6 +143,7 @@ public class VendaService {
 		item.setMarkupAplicado(categoria == Categoria.R ? calculo.getMarkupAtacado() : calculo.getMarkupVarejo());
 		item.setPrecoSugerido(calculo.getPrecoSugerido());
 		item.setPrecoFinal(calculo.getPrecoSugerido()); // default editável; reset ao recalcular
+		item.setEntradaJson(serializarEntrada(entrada));
 
 		List<ItemVendaDetalhe> detalhes = new ArrayList<>();
 		calculo.getMateriais().forEach(linha -> detalhes.add(congelarDetalhe(linha)));
@@ -136,10 +151,39 @@ public class VendaService {
 		item.setDetalhes(detalhes);
 	}
 
+	private String serializarEntrada(VendaItemRequest entrada) {
+		try {
+			return objectMapper.writeValueAsString(entrada);
+		} catch (Exception e) {
+			throw new VendaValidationException("Não foi possível registrar a entrada do item: " + e.getMessage());
+		}
+	}
+
+	/** Reconstrói a entrada original do item; itens antigos (sem JSON) usam só as medidas básicas. */
+	private VendaItemRequest reconstruirEntrada(ItemVenda item) {
+		if (item.getEntradaJson() != null && !item.getEntradaJson().isBlank()) {
+			try {
+				VendaItemRequest entrada = objectMapper.readValue(item.getEntradaJson(), VendaItemRequest.class);
+				entrada.setProdutoId(item.getProdutoId());
+				return entrada;
+			} catch (Exception e) {
+				throw new VendaValidationException(
+						"Não foi possível ler a entrada registrada do item: " + e.getMessage());
+			}
+		}
+		VendaItemRequest entrada = new VendaItemRequest();
+		entrada.setProdutoId(item.getProdutoId());
+		entrada.setAltura(item.getAltura());
+		entrada.setLargura(item.getLargura());
+		entrada.setQuantidade(item.getQuantidade());
+		return entrada;
+	}
+
 	private ItemVendaDetalhe congelarDetalhe(ProdutoCalculoItemResponse linha) {
 		ItemVendaDetalhe detalhe = new ItemVendaDetalhe();
 		detalhe.setNome(linha.getNome());
 		detalhe.setTipoItem(linha.getTipoItem());
+		detalhe.setOpcaoNome(linha.getOpcaoNome());
 		detalhe.setCalculoNome(linha.getCalculo());
 		detalhe.setTipoCalculo(linha.getTipoCalculo());
 		detalhe.setBaseOperacional(linha.getBaseOperacional());

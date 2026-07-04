@@ -46,6 +46,10 @@ public class ItemVendaDetalhe {
 	@Column(name = "tipo_item", length = 10)
 	private String tipoItem;
 
+	// Nome da opção que originou a linha (nulo para componentes base).
+	@Column(name = "opcao_nome", length = 60)
+	private String opcaoNome;
+
 	@Column(name = "calculo_nome", length = 140)
 	private String calculoNome;
 
@@ -106,6 +110,14 @@ public class ItemVendaDetalhe {
 
 	public void setTipoItem(String tipoItem) {
 		this.tipoItem = tipoItem;
+	}
+
+	public String getOpcaoNome() {
+		return opcaoNome;
+	}
+
+	public void setOpcaoNome(String opcaoNome) {
+		this.opcaoNome = opcaoNome;
 	}
 
 	public String getCalculoNome() {

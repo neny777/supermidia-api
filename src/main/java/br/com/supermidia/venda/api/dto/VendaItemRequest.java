@@ -1,8 +1,14 @@
 package br.com.supermidia.venda.api.dto;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import br.com.supermidia.produto.api.dto.ProdutoEscolhaMateriaRequest;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 
@@ -22,6 +28,14 @@ public class VendaItemRequest {
 	@NotNull(message = "A quantidade é obrigatória.")
 	@DecimalMin(value = "0.01", message = "A quantidade deve ser maior que zero.")
 	private BigDecimal quantidade;
+
+	// Medidas extras do produto (nome -> valor) e escolhas do orçamento.
+	private Map<String, BigDecimal> medidas = new HashMap<>();
+
+	@Valid
+	private List<ProdutoEscolhaMateriaRequest> escolhasMateria = new ArrayList<>();
+
+	private List<UUID> escolhasOpcao = new ArrayList<>();
 
 	public UUID getProdutoId() {
 		return produtoId;
@@ -53,5 +67,29 @@ public class VendaItemRequest {
 
 	public void setQuantidade(BigDecimal quantidade) {
 		this.quantidade = quantidade;
+	}
+
+	public Map<String, BigDecimal> getMedidas() {
+		return medidas;
+	}
+
+	public void setMedidas(Map<String, BigDecimal> medidas) {
+		this.medidas = medidas;
+	}
+
+	public List<ProdutoEscolhaMateriaRequest> getEscolhasMateria() {
+		return escolhasMateria;
+	}
+
+	public void setEscolhasMateria(List<ProdutoEscolhaMateriaRequest> escolhasMateria) {
+		this.escolhasMateria = escolhasMateria;
+	}
+
+	public List<UUID> getEscolhasOpcao() {
+		return escolhasOpcao;
+	}
+
+	public void setEscolhasOpcao(List<UUID> escolhasOpcao) {
+		this.escolhasOpcao = escolhasOpcao;
 	}
 }
