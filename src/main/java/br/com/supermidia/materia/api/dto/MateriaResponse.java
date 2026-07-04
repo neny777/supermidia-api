@@ -9,6 +9,7 @@ public class MateriaResponse {
 
 	private UUID id;
 	private String nome;
+	private String grupo;
 	private UnidadeMateria unidade;
 	private BigDecimal preco;
 
@@ -26,6 +27,14 @@ public class MateriaResponse {
 
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+
+	public String getGrupo() {
+		return grupo;
+	}
+
+	public void setGrupo(String grupo) {
+		this.grupo = grupo;
 	}
 
 	public UnidadeMateria getUnidade() {

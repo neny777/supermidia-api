@@ -30,6 +30,12 @@ public class Materia {
 	@Convert(converter = UppercaseConverter.class)
 	private String nome;
 
+	// Categoria para slots de material nos produtos (ex.: LONAS, ADESIVOS, CHAPAS).
+	// Opcional: matérias sem grupo não aparecem em slot algum (só como componente fixo).
+	@Column(name = "grupo", length = 40)
+	@Convert(converter = UppercaseConverter.class)
+	private String grupo;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "unidade", nullable = false, length = 2)
 	private UnidadeMateria unidade;
@@ -61,6 +67,14 @@ public class Materia {
 
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+
+	public String getGrupo() {
+		return grupo;
+	}
+
+	public void setGrupo(String grupo) {
+		this.grupo = grupo;
 	}
 
 	public UnidadeMateria getUnidade() {

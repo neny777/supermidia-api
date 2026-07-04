@@ -14,6 +14,9 @@ public class MateriaCreateRequest {
 	@Size(max = 140)
 	private String nome;
 
+	@Size(max = 40)
+	private String grupo;
+
 	@NotNull
 	private UnidadeMateria unidade;
 
@@ -27,6 +30,14 @@ public class MateriaCreateRequest {
 
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+
+	public String getGrupo() {
+		return grupo;
+	}
+
+	public void setGrupo(String grupo) {
+		this.grupo = grupo;
 	}
 
 	public UnidadeMateria getUnidade() {

@@ -45,6 +45,11 @@ public class MateriaController {
 		return ResponseEntity.ok(out);
 	}
 
+	@GetMapping("/grupos")
+	public ResponseEntity<List<String>> findGrupos() {
+		return ResponseEntity.ok(service.findGrupos());
+	}
+
 	@GetMapping("/{id}")
 	public ResponseEntity<MateriaResponse> findById(@PathVariable UUID id) {
 		return ResponseEntity.ok(mapper.toResponse(service.findById(id)));

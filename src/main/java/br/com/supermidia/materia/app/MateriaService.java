@@ -35,6 +35,11 @@ public class MateriaService {
 				.orElseThrow(() -> new MateriaNotFoundException("Matéria não encontrada: " + id));
 	}
 
+	@Transactional(readOnly = true)
+	public List<String> findGrupos() {
+		return materiaRepository.findGrupos();
+	}
+
 	@Transactional
 	public Materia update(UUID id, java.util.function.Consumer<Materia> updater) {
 		Materia current = findById(id);
