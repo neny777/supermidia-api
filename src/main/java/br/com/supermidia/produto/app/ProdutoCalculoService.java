@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,10 +20,11 @@ import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
 import br.com.supermidia.produto.domain.Produto;
-import br.com.supermidia.produto.domain.ProdutoMateriaCalculo;
-import br.com.supermidia.produto.domain.ProdutoMateriaParametroCalculo;
-import br.com.supermidia.produto.domain.ProdutoServicoCalculo;
-import br.com.supermidia.produto.domain.ProdutoServicoParametroCalculo;
+import br.com.supermidia.produto.domain.ProdutoComponente;
+import br.com.supermidia.produto.domain.ProdutoComponenteParametro;
+import br.com.supermidia.produto.domain.ProdutoMedida;
+import br.com.supermidia.produto.domain.ProdutoParametroVinculoMedida;
+import br.com.supermidia.produto.domain.TipoItemComponente;
 
 @Service
 public class ProdutoCalculoService {
@@ -47,6 +49,7 @@ public class ProdutoCalculoService {
 
 		ProdutoCalculoContext context = new ProdutoCalculoContext(request.getAltura(), request.getLargura(),
 				request.getQuantidade());
+		Map<String, BigDecimal> medidas = resolverMedidas(produto);
 
 		ProdutoCalculoResponse response = new ProdutoCalculoResponse();
 		response.setProdutoId(produto.getId());
@@ -56,13 +59,14 @@ public class ProdutoCalculoService {
 		response.setQuantidade(request.getQuantidade());
 
 		List<ProdutoCalculoItemResponse> materiais = new ArrayList<>();
-		for (ProdutoMateriaCalculo item : produto.getMateriasCalculo()) {
-			materiais.add(calcularMateria(item, context));
-		}
-
 		List<ProdutoCalculoItemResponse> servicos = new ArrayList<>();
-		for (ProdutoServicoCalculo item : produto.getServicosCalculo()) {
-			servicos.add(calcularServico(item, context));
+		for (ProdutoComponente componente : produto.getComponentes()) {
+			ProdutoCalculoItemResponse item = calcularComponente(componente, medidas, context);
+			if (componente.getTipoItem() == TipoItemComponente.MATERIA) {
+				materiais.add(item);
+			} else {
+				servicos.add(item);
+			}
 		}
 
 		BigDecimal totalMateriais = somarTotais(materiais);
@@ -79,6 +83,71 @@ public class ProdutoCalculoService {
 		aplicarPrecificacao(response, totalMateriais, totalServicos, custoTotal, request.getCategoria());
 
 		return response;
+	}
+
+	/**
+	 * Valores das medidas declaradas. Nesta fase usa o valor padrão do cadastro;
+	 * a fase do orçamento passará os valores informados pelo operador.
+	 */
+	private Map<String, BigDecimal> resolverMedidas(Produto produto) {
+		Map<String, BigDecimal> medidas = new HashMap<>();
+		for (ProdutoMedida medida : produto.getMedidas()) {
+			BigDecimal valor = medida.getValorPadrao() != null ? medida.getValorPadrao() : BigDecimal.ZERO;
+			medidas.put(medida.getNome().trim().toUpperCase(), valor);
+		}
+		return medidas;
+	}
+
+	private ProdutoCalculoItemResponse calcularComponente(ProdutoComponente componente,
+			Map<String, BigDecimal> medidas, ProdutoCalculoContext context) {
+		if (componente.isSlot()) {
+			throw new ProdutoCalculoValidationException("O componente do grupo '" + componente.getGrupoMateriaSlot()
+					+ "' exige a escolha do material no orçamento (ainda não suportada neste cálculo).");
+		}
+
+		BigDecimal quantidadeCalculada = calcularQuantidade(componente.getCalculo().getTipoCalculo(),
+				componente.getCalculo().getBaseOperacional(), extrairParametros(componente, medidas), context);
+
+		String nome;
+		String unidade;
+		BigDecimal precoUnitario;
+		if (componente.getTipoItem() == TipoItemComponente.MATERIA) {
+			nome = componente.getMateria().getNome();
+			unidade = componente.getMateria().getUnidade().name();
+			precoUnitario = componente.getMateria().getPreco();
+		} else {
+			nome = componente.getServico().getNome();
+			unidade = componente.getServico().getUnidade().name();
+			precoUnitario = componente.getServico().getPreco();
+		}
+
+		ProdutoCalculoItemResponse response = new ProdutoCalculoItemResponse();
+		response.setNome(nome);
+		response.setTipoItem(componente.getTipoItem().name());
+		response.setCalculo(componente.getCalculo().getNome());
+		response.setTipoCalculo(componente.getCalculo().getTipoCalculo());
+		response.setBaseOperacional(componente.getCalculo().getBaseOperacional());
+		response.setQuantidadeCalculada(quantidadeCalculada);
+		response.setUnidade(unidade);
+		response.setPrecoUnitario(precoUnitario.setScale(SCALE_VALOR, RoundingMode.HALF_UP));
+		response.setValorTotal(quantidadeCalculada.multiply(precoUnitario).setScale(SCALE_VALOR, RoundingMode.HALF_UP));
+		return response;
+	}
+
+	/** Parâmetro efetivo = constante + Σ(valor da medida × multiplicador do vínculo). */
+	private Map<CodigoParametroCalculo, BigDecimal> extrairParametros(ProdutoComponente componente,
+			Map<String, BigDecimal> medidas) {
+		Map<CodigoParametroCalculo, BigDecimal> parametros = new EnumMap<>(CodigoParametroCalculo.class);
+		for (ProdutoComponenteParametro parametro : componente.getParametros()) {
+			BigDecimal valor = parametro.getValorConstante() != null ? parametro.getValorConstante() : BigDecimal.ZERO;
+			for (ProdutoParametroVinculoMedida vinculo : parametro.getVinculos()) {
+				BigDecimal valorMedida = medidas.getOrDefault(vinculo.getMedidaNome().trim().toUpperCase(),
+						BigDecimal.ZERO);
+				valor = valor.add(valorMedida.multiply(vinculo.getMultiplicador()));
+			}
+			parametros.put(parametro.getCodigo(), valor);
+		}
+		return parametros;
 	}
 
 	/**
@@ -115,57 +184,9 @@ public class ProdutoCalculoService {
 		return BigDecimal.ONE.subtract(razao).max(PISO_MARGEM);
 	}
 
-	private ProdutoCalculoItemResponse calcularMateria(ProdutoMateriaCalculo item, ProdutoCalculoContext context) {
-		BigDecimal quantidadeCalculada = calcularQuantidade(item.getCalculo().getTipoCalculo(),
-				item.getCalculo().getBaseOperacional(), extrairParametrosMateria(item), context);
-		return toResponse(item.getMateria().getNome(), "MATERIA", item.getCalculo().getNome(),
-				item.getCalculo().getTipoCalculo(), item.getCalculo().getBaseOperacional(), quantidadeCalculada,
-				item.getMateria().getUnidade().name(), item.getMateria().getPreco());
-	}
-
-	private ProdutoCalculoItemResponse calcularServico(ProdutoServicoCalculo item, ProdutoCalculoContext context) {
-		BigDecimal quantidadeCalculada = calcularQuantidade(item.getCalculo().getTipoCalculo(),
-				item.getCalculo().getBaseOperacional(), extrairParametrosServico(item), context);
-		return toResponse(item.getServico().getNome(), "SERVICO", item.getCalculo().getNome(),
-				item.getCalculo().getTipoCalculo(), item.getCalculo().getBaseOperacional(), quantidadeCalculada,
-				item.getServico().getUnidade().name(), item.getServico().getPreco());
-	}
-
-	private ProdutoCalculoItemResponse toResponse(String nome, String tipoItem, String calculo, TipoCalculo tipoCalculo,
-			BaseOperacionalCalculo baseOperacional, BigDecimal quantidadeCalculada, String unidade,
-			BigDecimal precoUnitario) {
-		ProdutoCalculoItemResponse response = new ProdutoCalculoItemResponse();
-		response.setNome(nome);
-		response.setTipoItem(tipoItem);
-		response.setCalculo(calculo);
-		response.setTipoCalculo(tipoCalculo);
-		response.setBaseOperacional(baseOperacional);
-		response.setQuantidadeCalculada(quantidadeCalculada);
-		response.setUnidade(unidade);
-		response.setPrecoUnitario(precoUnitario.setScale(SCALE_VALOR, RoundingMode.HALF_UP));
-		response.setValorTotal(quantidadeCalculada.multiply(precoUnitario).setScale(SCALE_VALOR, RoundingMode.HALF_UP));
-		return response;
-	}
-
 	private BigDecimal somarTotais(List<ProdutoCalculoItemResponse> itens) {
 		return itens.stream().map(ProdutoCalculoItemResponse::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add)
 				.setScale(SCALE_VALOR, RoundingMode.HALF_UP);
-	}
-
-	private Map<CodigoParametroCalculo, BigDecimal> extrairParametrosMateria(ProdutoMateriaCalculo item) {
-		Map<CodigoParametroCalculo, BigDecimal> parametros = new EnumMap<>(CodigoParametroCalculo.class);
-		for (ProdutoMateriaParametroCalculo parametro : item.getParametros()) {
-			parametros.put(parametro.getCodigo(), parametro.getValor());
-		}
-		return parametros;
-	}
-
-	private Map<CodigoParametroCalculo, BigDecimal> extrairParametrosServico(ProdutoServicoCalculo item) {
-		Map<CodigoParametroCalculo, BigDecimal> parametros = new EnumMap<>(CodigoParametroCalculo.class);
-		for (ProdutoServicoParametroCalculo parametro : item.getParametros()) {
-			parametros.put(parametro.getCodigo(), parametro.getValor());
-		}
-		return parametros;
 	}
 
 	private BigDecimal calcularQuantidade(TipoCalculo tipoCalculo, BaseOperacionalCalculo baseOperacional,

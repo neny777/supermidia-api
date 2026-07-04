@@ -19,9 +19,14 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+/**
+ * Contribuição de uma opção ativa aos parâmetros dos componentes BASE do produto:
+ * soma {@code valor} a todo parâmetro base de mesmo {@code codigo}.
+ * Ex.: opção "Com ilhós" → ACRESCIMO_ALTURA +6 e ACRESCIMO_LARGURA +6 (bainha).
+ */
 @Entity
-@Table(name = "produtos_servicos_parametros_calculos")
-public class ProdutoServicoParametroCalculo {
+@Table(name = "produtos_opcoes_contribuicoes")
+public class ProdutoOpcaoContribuicao {
 
 	@Id
 	@JdbcTypeCode(SqlTypes.BINARY)
@@ -29,8 +34,8 @@ public class ProdutoServicoParametroCalculo {
 	private UUID id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "produto_servico_calculo_id", nullable = false, columnDefinition = "BINARY(16)")
-	private ProdutoServicoCalculo produtoServicoCalculo;
+	@JoinColumn(name = "opcao_id", nullable = false, columnDefinition = "BINARY(16)")
+	private ProdutoOpcao opcao;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "codigo", nullable = false, length = 30)
@@ -54,12 +59,12 @@ public class ProdutoServicoParametroCalculo {
 		this.id = id;
 	}
 
-	public ProdutoServicoCalculo getProdutoServicoCalculo() {
-		return produtoServicoCalculo;
+	public ProdutoOpcao getOpcao() {
+		return opcao;
 	}
 
-	public void setProdutoServicoCalculo(ProdutoServicoCalculo produtoServicoCalculo) {
-		this.produtoServicoCalculo = produtoServicoCalculo;
+	public void setOpcao(ProdutoOpcao opcao) {
+		this.opcao = opcao;
 	}
 
 	public CodigoParametroCalculo getCodigo() {
@@ -91,7 +96,7 @@ public class ProdutoServicoParametroCalculo {
 		if (obj == null || getClass() != obj.getClass()) {
 			return false;
 		}
-		ProdutoServicoParametroCalculo other = (ProdutoServicoParametroCalculo) obj;
+		ProdutoOpcaoContribuicao other = (ProdutoOpcaoContribuicao) obj;
 		return Objects.equals(id, other.id);
 	}
 }

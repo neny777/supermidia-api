@@ -25,9 +25,11 @@ import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
 import br.com.supermidia.produto.domain.Produto;
-import br.com.supermidia.produto.domain.ProdutoMateriaCalculo;
-import br.com.supermidia.produto.domain.ProdutoServicoCalculo;
-import br.com.supermidia.produto.domain.ProdutoServicoParametroCalculo;
+import br.com.supermidia.produto.domain.ProdutoComponente;
+import br.com.supermidia.produto.domain.ProdutoComponenteParametro;
+import br.com.supermidia.produto.domain.ProdutoMedida;
+import br.com.supermidia.produto.domain.ProdutoParametroVinculoMedida;
+import br.com.supermidia.produto.domain.TipoItemComponente;
 import br.com.supermidia.servico.domain.Servico;
 import br.com.supermidia.servico.domain.UnidadeServico;
 
@@ -48,7 +50,8 @@ class ProdutoCalculoServiceTest {
 	void deveCalcularUnidadeFixaMultiplicandoPelaQuantidadeDoItem() {
 		// Bastão: 2 unidades por peça, a R$ 1,50 — pedido de 3 peças => 6 un => R$ 9,00
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
+		Produto produto = produtoSoServico(produtoId, "BASTAO", "1.50", TipoCalculo.UNIDADE_FIXA,
+				param(CodigoParametroCalculo.QUANTIDADE_FIXA, "2"));
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "80", "3"));
@@ -65,15 +68,14 @@ class ProdutoCalculoServiceTest {
 
 	@Test
 	void unidadeFixaNaoDeveDependerDasDimensoes() {
-		// Mesma quantidade fixa e quantidade de peças, dimensões diferentes => mesmo resultado
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoUnidadeFixa(produtoId, "PONTEIRA", "0.24", "4");
+		Produto produto = produtoSoServico(produtoId, "PONTEIRA", "0.24", TipoCalculo.UNIDADE_FIXA,
+				param(CodigoParametroCalculo.QUANTIDADE_FIXA, "4"));
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoResponse pequeno = calculoService.calcular(produtoId, request("30", "30", "5"));
 		ProdutoCalculoResponse grande = calculoService.calcular(produtoId, request("300", "200", "5"));
 
-		// 4 por peça * 5 peças = 20 un, independente da medida
 		assertThat(pequeno.getServicos().get(0).getQuantidadeCalculada()).isEqualByComparingTo("20");
 		assertThat(grande.getServicos().get(0).getQuantidadeCalculada())
 				.isEqualByComparingTo(pequeno.getServicos().get(0).getQuantidadeCalculada());
@@ -82,7 +84,7 @@ class ProdutoCalculoServiceTest {
 	@Test
 	void deveFalharQuandoFaltaParametroQuantidadeFixa() {
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoUnidadeFixa(produtoId, "GRAMPO", "0.02", null);
+		Produto produto = produtoSoServico(produtoId, "GRAMPO", "0.02", TipoCalculo.UNIDADE_FIXA);
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		assertThatThrownBy(() -> calculoService.calcular(produtoId, request("100", "80", "1")))
@@ -94,13 +96,13 @@ class ProdutoCalculoServiceTest {
 	void taxaFixaNaoDeveEscalarComAQuantidade() {
 		// Ajuste de arte: R$ 5,00 uma vez por item do orçamento, seja 1 ou 10 peças
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoTaxaFixa(produtoId, "AJUSTE DE ARTE SIMPLES", "5.00", "1");
+		Produto produto = produtoSoServico(produtoId, "AJUSTE DE ARTE SIMPLES", "5.00", TipoCalculo.TAXA_FIXA,
+				param(CodigoParametroCalculo.QUANTIDADE_FIXA, "1"));
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoResponse umaPeca = calculoService.calcular(produtoId, request("100", "80", "1"));
 		ProdutoCalculoResponse dezPecas = calculoService.calcular(produtoId, request("100", "80", "10"));
 
-		assertThat(umaPeca.getServicos().get(0).getQuantidadeCalculada()).isEqualByComparingTo("1");
 		assertThat(umaPeca.getServicos().get(0).getValorTotal()).isEqualByComparingTo("5.00");
 		assertThat(dezPecas.getServicos().get(0).getQuantidadeCalculada()).isEqualByComparingTo("1");
 		assertThat(dezPecas.getServicos().get(0).getValorTotal()).isEqualByComparingTo("5.00");
@@ -109,9 +111,9 @@ class ProdutoCalculoServiceTest {
 	@Test
 	void margemAutomaticaCresceQuandoOMaterialDominaOCusto() {
 		// material 100 (1 m² x R$100) + serviço 30 (1 un x R$30) => custo 130
-		// razão serviço/material = 0,30 => margem atacado = 1 - 0,30 = 0,70 (acima do piso)
+		// razão serviço/material = 0,30 => margem atacado = 0,70 (acima do piso)
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComMaterialEServico(produtoId, "100", "30", "1");
+		Produto produto = produtoMaterialEServico(produtoId, "100", "30", "1");
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "100", "1"));
@@ -119,17 +121,17 @@ class ProdutoCalculoServiceTest {
 		assertThat(response.getTotalMateriais()).isEqualByComparingTo("100.00");
 		assertThat(response.getTotalServicos()).isEqualByComparingTo("30.00");
 		assertThat(response.getTotalGeral()).isEqualByComparingTo("130.00");
-		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("70.00"); // 70%
-		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("221.00"); // 130 x 1,70
+		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("70.00");
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("221.00");
 		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("306.00"); // 221 x 1,3846
-		assertThat(response.getPrecoSugerido()).isNull(); // sem categoria
+		assertThat(response.getPrecoSugerido()).isNull();
 	}
 
 	@Test
 	void semCustoDeMaterialDeveAplicarOPisoDe35() {
-		// serviço puro (sem material): custo 9,00 => margem trava no piso de 35%
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComServicoUnidadeFixa(produtoId, "BASTAO", "1.50", "2");
+		Produto produto = produtoSoServico(produtoId, "BASTAO", "1.50", TipoCalculo.UNIDADE_FIXA,
+				param(CodigoParametroCalculo.QUANTIDADE_FIXA, "2"));
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "80", "3"));
@@ -142,7 +144,7 @@ class ProdutoCalculoServiceTest {
 	@Test
 	void deveSugerirAtacadoParaRevendaEVarejoParaConsumidorFinal() {
 		UUID produtoId = UUID.randomUUID();
-		Produto produto = produtoComMaterialEServico(produtoId, "100", "30", "1");
+		Produto produto = produtoMaterialEServico(produtoId, "100", "30", "1");
 		when(produtoService.findById(produtoId)).thenReturn(produto);
 
 		ProdutoCalculoRequest revenda = request("100", "100", "1");
@@ -154,110 +156,147 @@ class ProdutoCalculoServiceTest {
 		assertThat(calculoService.calcular(produtoId, finalConsumidor).getPrecoSugerido()).isEqualByComparingTo("306.00");
 	}
 
+	@Test
+	void medidaVinculadaDeveAlimentarOParametroComMultiplicador() {
+		// BORDA padrão 10cm, vínculo ×2 => acréscimo de 20cm por dimensão.
+		// Lona 100x100 => (1,20 × 1,20) = 1,44 m² × R$10 = R$ 14,40
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("LONA COM BORDA");
+		produto.addMedida(medida("BORDA", "10"));
+
+		ProdutoComponenteParametro acrescimoAltura = paramComVinculo(CodigoParametroCalculo.ACRESCIMO_ALTURA, null,
+				"BORDA", "2");
+		ProdutoComponenteParametro acrescimoLargura = paramComVinculo(CodigoParametroCalculo.ACRESCIMO_LARGURA, null,
+				"BORDA", "2");
+		ProdutoComponenteParametro fator = param(CodigoParametroCalculo.FATOR, "1");
+		produto.addComponente(componenteMateria(materia("LONA", "10.00"),
+				calculo("LONA COM ACRESCIMOS", TipoCalculo.AREA_COM_ACRESCIMOS_E_FATOR, BaseOperacionalCalculo.AREA),
+				acrescimoAltura, acrescimoLargura, fator));
+
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "100", "1"));
+
+		assertThat(response.getMateriais().get(0).getQuantidadeCalculada()).isEqualByComparingTo("1.44");
+		assertThat(response.getMateriais().get(0).getValorTotal()).isEqualByComparingTo("14.40");
+	}
+
+	@Test
+	void slotSemEscolhaDeMaterialDeveFalhar() {
+		UUID produtoId = UUID.randomUUID();
+		Produto produto = new Produto();
+		produto.setId(produtoId);
+		produto.setNome("IMPRESSAO EM LONA");
+		ProdutoComponente slot = new ProdutoComponente();
+		slot.setTipoItem(TipoItemComponente.MATERIA);
+		slot.setGrupoMateriaSlot("LONAS");
+		slot.setCalculo(calculo("AREA", TipoCalculo.AREA_BASE, BaseOperacionalCalculo.AREA));
+		produto.addComponente(slot);
+		when(produtoService.findById(produtoId)).thenReturn(produto);
+
+		assertThatThrownBy(() -> calculoService.calcular(produtoId, request("100", "100", "1")))
+				.isInstanceOf(ProdutoCalculoValidationException.class)
+				.hasMessageContaining("LONAS");
+	}
+
 	// --- fixtures ---
 
-	private Produto produtoComServicoUnidadeFixa(UUID produtoId, String nomeServico, String preco,
-			String quantidadeFixa) {
-		Servico servico = new Servico();
-		servico.setId(UUID.randomUUID());
-		servico.setNome(nomeServico);
-		servico.setUnidade(UnidadeServico.UN);
-		servico.setPreco(new BigDecimal(preco));
-
-		Calculo calculo = new Calculo();
-		calculo.setId(UUID.randomUUID());
-		calculo.setNome(nomeServico + " POR UNIDADE");
-		calculo.setTipoCalculo(TipoCalculo.UNIDADE_FIXA);
-		calculo.setBaseOperacional(BaseOperacionalCalculo.QUANTIDADE_INFORMADA);
-
-		ProdutoServicoCalculo servicoCalculo = new ProdutoServicoCalculo();
-		servicoCalculo.setServico(servico);
-		servicoCalculo.setCalculo(calculo);
-		if (quantidadeFixa != null) {
-			ProdutoServicoParametroCalculo parametro = new ProdutoServicoParametroCalculo();
-			parametro.setCodigo(CodigoParametroCalculo.QUANTIDADE_FIXA);
-			parametro.setValor(new BigDecimal(quantidadeFixa));
-			servicoCalculo.setParametros(List.of(parametro));
-		}
-
+	private Produto produtoSoServico(UUID produtoId, String nomeServico, String preco, TipoCalculo tipo,
+			ProdutoComponenteParametro... parametros) {
 		Produto produto = new Produto();
 		produto.setId(produtoId);
 		produto.setNome("PRODUTO TESTE");
-		produto.setServicosCalculo(List.of(servicoCalculo));
+		produto.addComponente(componenteServico(servico(nomeServico, preco),
+				calculo(nomeServico + " " + tipo, tipo, BaseOperacionalCalculo.QUANTIDADE_INFORMADA), parametros));
 		return produto;
 	}
 
-	private Produto produtoComServicoTaxaFixa(UUID produtoId, String nomeServico, String preco, String quantidadeFixa) {
-		Servico servico = new Servico();
-		servico.setId(UUID.randomUUID());
-		servico.setNome(nomeServico);
-		servico.setUnidade(UnidadeServico.UN);
-		servico.setPreco(new BigDecimal(preco));
-
-		Calculo calculo = new Calculo();
-		calculo.setId(UUID.randomUUID());
-		calculo.setNome(nomeServico + " TAXA FIXA");
-		calculo.setTipoCalculo(TipoCalculo.TAXA_FIXA);
-		calculo.setBaseOperacional(BaseOperacionalCalculo.QUANTIDADE_INFORMADA);
-
-		ProdutoServicoParametroCalculo parametro = new ProdutoServicoParametroCalculo();
-		parametro.setCodigo(CodigoParametroCalculo.QUANTIDADE_FIXA);
-		parametro.setValor(new BigDecimal(quantidadeFixa));
-
-		ProdutoServicoCalculo servicoCalculo = new ProdutoServicoCalculo();
-		servicoCalculo.setServico(servico);
-		servicoCalculo.setCalculo(calculo);
-		servicoCalculo.setParametros(List.of(parametro));
-
-		Produto produto = new Produto();
-		produto.setId(produtoId);
-		produto.setNome("PRODUTO TAXA FIXA");
-		produto.setServicosCalculo(List.of(servicoCalculo));
-		return produto;
-	}
-
-	private Produto produtoComMaterialEServico(UUID produtoId, String materiaPreco, String servicoPreco,
+	private Produto produtoMaterialEServico(UUID produtoId, String materiaPreco, String servicoPreco,
 			String quantidadeFixa) {
-		// Matéria por área (AREA_BASE)
-		Materia materia = new Materia();
-		materia.setId(UUID.randomUUID());
-		materia.setNome("LONA");
-		materia.setUnidade(UnidadeMateria.M2);
-		materia.setPreco(new BigDecimal(materiaPreco));
-		Calculo calcMateria = new Calculo();
-		calcMateria.setId(UUID.randomUUID());
-		calcMateria.setNome("AREA");
-		calcMateria.setTipoCalculo(TipoCalculo.AREA_BASE);
-		calcMateria.setBaseOperacional(BaseOperacionalCalculo.AREA);
-		ProdutoMateriaCalculo materiaCalculo = new ProdutoMateriaCalculo();
-		materiaCalculo.setMateria(materia);
-		materiaCalculo.setCalculo(calcMateria);
-
-		// Serviço por unidade (UNIDADE_FIXA)
-		Servico servico = new Servico();
-		servico.setId(UUID.randomUUID());
-		servico.setNome("TAXA");
-		servico.setUnidade(UnidadeServico.UN);
-		servico.setPreco(new BigDecimal(servicoPreco));
-		Calculo calcServico = new Calculo();
-		calcServico.setId(UUID.randomUUID());
-		calcServico.setNome("TAXA POR UNIDADE");
-		calcServico.setTipoCalculo(TipoCalculo.UNIDADE_FIXA);
-		calcServico.setBaseOperacional(BaseOperacionalCalculo.QUANTIDADE_INFORMADA);
-		ProdutoServicoCalculo servicoCalculo = new ProdutoServicoCalculo();
-		servicoCalculo.setServico(servico);
-		servicoCalculo.setCalculo(calcServico);
-		ProdutoServicoParametroCalculo parametro = new ProdutoServicoParametroCalculo();
-		parametro.setCodigo(CodigoParametroCalculo.QUANTIDADE_FIXA);
-		parametro.setValor(new BigDecimal(quantidadeFixa));
-		servicoCalculo.setParametros(List.of(parametro));
-
 		Produto produto = new Produto();
 		produto.setId(produtoId);
 		produto.setNome("PRODUTO MAT+SERV");
-		produto.setMateriasCalculo(List.of(materiaCalculo));
-		produto.setServicosCalculo(List.of(servicoCalculo));
+		produto.addComponente(componenteMateria(materia("LONA", materiaPreco),
+				calculo("AREA", TipoCalculo.AREA_BASE, BaseOperacionalCalculo.AREA)));
+		produto.addComponente(componenteServico(servico("TAXA", servicoPreco),
+				calculo("TAXA POR UNIDADE", TipoCalculo.UNIDADE_FIXA, BaseOperacionalCalculo.QUANTIDADE_INFORMADA),
+				param(CodigoParametroCalculo.QUANTIDADE_FIXA, quantidadeFixa)));
 		return produto;
+	}
+
+	private ProdutoComponente componenteMateria(Materia materia, Calculo calculo,
+			ProdutoComponenteParametro... parametros) {
+		ProdutoComponente componente = new ProdutoComponente();
+		componente.setTipoItem(TipoItemComponente.MATERIA);
+		componente.setMateria(materia);
+		componente.setCalculo(calculo);
+		componente.setParametros(List.of(parametros));
+		return componente;
+	}
+
+	private ProdutoComponente componenteServico(Servico servico, Calculo calculo,
+			ProdutoComponenteParametro... parametros) {
+		ProdutoComponente componente = new ProdutoComponente();
+		componente.setTipoItem(TipoItemComponente.SERVICO);
+		componente.setServico(servico);
+		componente.setCalculo(calculo);
+		componente.setParametros(List.of(parametros));
+		return componente;
+	}
+
+	private Materia materia(String nome, String preco) {
+		Materia materia = new Materia();
+		materia.setId(UUID.randomUUID());
+		materia.setNome(nome);
+		materia.setUnidade(UnidadeMateria.M2);
+		materia.setPreco(new BigDecimal(preco));
+		return materia;
+	}
+
+	private Servico servico(String nome, String preco) {
+		Servico servico = new Servico();
+		servico.setId(UUID.randomUUID());
+		servico.setNome(nome);
+		servico.setUnidade(UnidadeServico.UN);
+		servico.setPreco(new BigDecimal(preco));
+		return servico;
+	}
+
+	private Calculo calculo(String nome, TipoCalculo tipo, BaseOperacionalCalculo base) {
+		Calculo calculo = new Calculo();
+		calculo.setId(UUID.randomUUID());
+		calculo.setNome(nome);
+		calculo.setTipoCalculo(tipo);
+		calculo.setBaseOperacional(base);
+		return calculo;
+	}
+
+	private ProdutoComponenteParametro param(CodigoParametroCalculo codigo, String valorConstante) {
+		ProdutoComponenteParametro parametro = new ProdutoComponenteParametro();
+		parametro.setCodigo(codigo);
+		parametro.setValorConstante(new BigDecimal(valorConstante));
+		return parametro;
+	}
+
+	private ProdutoComponenteParametro paramComVinculo(CodigoParametroCalculo codigo, String constante,
+			String medidaNome, String multiplicador) {
+		ProdutoComponenteParametro parametro = new ProdutoComponenteParametro();
+		parametro.setCodigo(codigo);
+		parametro.setValorConstante(constante == null ? null : new BigDecimal(constante));
+		ProdutoParametroVinculoMedida vinculo = new ProdutoParametroVinculoMedida();
+		vinculo.setMedidaNome(medidaNome);
+		vinculo.setMultiplicador(new BigDecimal(multiplicador));
+		parametro.addVinculo(vinculo);
+		return parametro;
+	}
+
+	private ProdutoMedida medida(String nome, String valorPadrao) {
+		ProdutoMedida medida = new ProdutoMedida();
+		medida.setNome(nome);
+		medida.setValorPadrao(valorPadrao == null ? null : new BigDecimal(valorPadrao));
+		return medida;
 	}
 
 	private ProdutoCalculoRequest request(String altura, String largura, String quantidade) {

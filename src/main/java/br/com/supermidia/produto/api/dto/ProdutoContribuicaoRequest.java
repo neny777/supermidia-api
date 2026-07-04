@@ -1,23 +1,17 @@
 package br.com.supermidia.produto.api.dto;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-public class ProdutoParametroCalculoRequest {
+public class ProdutoContribuicaoRequest {
 
 	@NotNull
 	private CodigoParametroCalculo codigo;
 
-	// Constante da soma; opcional quando há vínculos de medida.
+	@NotNull
 	private BigDecimal valor;
-
-	@Valid
-	private List<ProdutoVinculoMedidaRequest> vinculos = new ArrayList<>();
 
 	public CodigoParametroCalculo getCodigo() {
 		return codigo;
@@ -33,13 +27,5 @@ public class ProdutoParametroCalculoRequest {
 
 	public void setValor(BigDecimal valor) {
 		this.valor = valor;
-	}
-
-	public List<ProdutoVinculoMedidaRequest> getVinculos() {
-		return vinculos;
-	}
-
-	public void setVinculos(List<ProdutoVinculoMedidaRequest> vinculos) {
-		this.vinculos = vinculos;
 	}
 }

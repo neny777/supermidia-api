@@ -14,10 +14,16 @@ public class ProdutoCreateRequest {
 	private String nome;
 
 	@Valid
+	private List<ProdutoMedidaRequest> medidas = new ArrayList<>();
+
+	@Valid
 	private List<ProdutoMateriaCalculoRequest> materiasCalculo = new ArrayList<>();
 
 	@Valid
 	private List<ProdutoServicoCalculoRequest> servicosCalculo = new ArrayList<>();
+
+	@Valid
+	private List<ProdutoGrupoOpcaoRequest> gruposOpcoes = new ArrayList<>();
 
 	public String getNome() {
 		return nome;
@@ -25,6 +31,22 @@ public class ProdutoCreateRequest {
 
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+
+	public List<ProdutoMedidaRequest> getMedidas() {
+		return medidas;
+	}
+
+	public void setMedidas(List<ProdutoMedidaRequest> medidas) {
+		this.medidas = medidas;
+	}
+
+	public List<ProdutoGrupoOpcaoRequest> getGruposOpcoes() {
+		return gruposOpcoes;
+	}
+
+	public void setGruposOpcoes(List<ProdutoGrupoOpcaoRequest> gruposOpcoes) {
+		this.gruposOpcoes = gruposOpcoes;
 	}
 
 	public List<ProdutoMateriaCalculoRequest> getMateriasCalculo() {

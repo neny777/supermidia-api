@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import br.com.supermidia.produto.api.dto.ProdutoCreateRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
+import br.com.supermidia.produto.api.dto.ProdutoCreateRequest;
 import br.com.supermidia.produto.api.dto.ProdutoResponse;
 import br.com.supermidia.produto.api.dto.ProdutoUpdateRequest;
 import br.com.supermidia.produto.app.ProdutoCalculoService;
@@ -40,11 +40,7 @@ public class ProdutoController {
 
 	@PostMapping
 	public ResponseEntity<ProdutoResponse> create(@Valid @RequestBody ProdutoCreateRequest request) {
-		Produto entity = mapper.toEntity(request);
-		entity.setMateriasCalculo(mapper.toMateriaCalculoEntities(request.getMateriasCalculo()));
-		entity.setServicosCalculo(mapper.toServicoCalculoEntities(request.getServicosCalculo()));
-		aplicarParametros(request, entity);
-		Produto saved = service.create(entity);
+		Produto saved = service.create(mapper.toEntity(request));
 		return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(saved));
 	}
 
@@ -67,12 +63,7 @@ public class ProdutoController {
 
 	@PutMapping("/{id}")
 	public ResponseEntity<ProdutoResponse> update(@PathVariable UUID id, @Valid @RequestBody ProdutoUpdateRequest request) {
-		Produto updated = service.update(id, entity -> {
-			mapper.updateEntity(request, entity);
-			entity.setMateriasCalculo(mapper.toMateriaCalculoEntities(request.getMateriasCalculo()));
-			entity.setServicosCalculo(mapper.toServicoCalculoEntities(request.getServicosCalculo()));
-			aplicarParametros(request, entity);
-		});
+		Produto updated = service.update(id, entity -> mapper.updateEntity(request, entity));
 		return ResponseEntity.ok(mapper.toResponse(updated));
 	}
 
@@ -80,27 +71,5 @@ public class ProdutoController {
 	public ResponseEntity<Void> delete(@PathVariable UUID id) {
 		service.delete(id);
 		return ResponseEntity.noContent().build();
-	}
-
-	private void aplicarParametros(ProdutoCreateRequest request, Produto entity) {
-		for (int i = 0; i < entity.getMateriasCalculo().size(); i++) {
-			entity.getMateriasCalculo().get(i)
-					.setParametros(mapper.toMateriaParametroEntities(request.getMateriasCalculo().get(i).getParametros()));
-		}
-		for (int i = 0; i < entity.getServicosCalculo().size(); i++) {
-			entity.getServicosCalculo().get(i)
-					.setParametros(mapper.toServicoParametroEntities(request.getServicosCalculo().get(i).getParametros()));
-		}
-	}
-
-	private void aplicarParametros(ProdutoUpdateRequest request, Produto entity) {
-		for (int i = 0; i < entity.getMateriasCalculo().size(); i++) {
-			entity.getMateriasCalculo().get(i)
-					.setParametros(mapper.toMateriaParametroEntities(request.getMateriasCalculo().get(i).getParametros()));
-		}
-		for (int i = 0; i < entity.getServicosCalculo().size(); i++) {
-			entity.getServicosCalculo().get(i)
-					.setParametros(mapper.toServicoParametroEntities(request.getServicosCalculo().get(i).getParametros()));
-		}
 	}
 }

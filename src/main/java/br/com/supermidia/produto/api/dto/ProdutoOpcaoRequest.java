@@ -7,14 +7,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public class ProdutoUpdateRequest {
+public class ProdutoOpcaoRequest {
 
 	@NotBlank
-	@Size(max = 140)
+	@Size(max = 60)
 	private String nome;
-
-	@Valid
-	private List<ProdutoMedidaRequest> medidas = new ArrayList<>();
 
 	@Valid
 	private List<ProdutoMateriaCalculoRequest> materiasCalculo = new ArrayList<>();
@@ -23,7 +20,7 @@ public class ProdutoUpdateRequest {
 	private List<ProdutoServicoCalculoRequest> servicosCalculo = new ArrayList<>();
 
 	@Valid
-	private List<ProdutoGrupoOpcaoRequest> gruposOpcoes = new ArrayList<>();
+	private List<ProdutoContribuicaoRequest> contribuicoes = new ArrayList<>();
 
 	public String getNome() {
 		return nome;
@@ -31,22 +28,6 @@ public class ProdutoUpdateRequest {
 
 	public void setNome(String nome) {
 		this.nome = nome;
-	}
-
-	public List<ProdutoMedidaRequest> getMedidas() {
-		return medidas;
-	}
-
-	public void setMedidas(List<ProdutoMedidaRequest> medidas) {
-		this.medidas = medidas;
-	}
-
-	public List<ProdutoGrupoOpcaoRequest> getGruposOpcoes() {
-		return gruposOpcoes;
-	}
-
-	public void setGruposOpcoes(List<ProdutoGrupoOpcaoRequest> gruposOpcoes) {
-		this.gruposOpcoes = gruposOpcoes;
 	}
 
 	public List<ProdutoMateriaCalculoRequest> getMateriasCalculo() {
@@ -63,5 +44,13 @@ public class ProdutoUpdateRequest {
 
 	public void setServicosCalculo(List<ProdutoServicoCalculoRequest> servicosCalculo) {
 		this.servicosCalculo = servicosCalculo;
+	}
+
+	public List<ProdutoContribuicaoRequest> getContribuicoes() {
+		return contribuicoes;
+	}
+
+	public void setContribuicoes(List<ProdutoContribuicaoRequest> contribuicoes) {
+		this.contribuicoes = contribuicoes;
 	}
 }

@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -17,59 +15,46 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 /**
- * Produto-template: declara o que o orçamento pergunta e como se calcula.
- * - medidas: entradas extras do orçamento (ex.: BORDA), com limites;
- * - componentes: insumos BASE (formam a margem; matéria fixa ou slot por grupo);
- * - gruposOpcoes: escolhas do orçamento (acabamentos/seleções — herdam a margem).
+ * Uma opção escolhível de um {@link ProdutoGrupoOpcao}. Quando ativa no orçamento,
+ * seus componentes entram no cálculo (herdando a margem, sem formá-la) e suas
+ * contribuições somam-se aos parâmetros de mesmo código dos componentes BASE
+ * (ex.: Ilhós → +6cm nos acréscimos da lona).
  */
 @Entity
-@Table(name = "produtos")
-public class Produto {
+@Table(name = "produtos_opcoes")
+public class ProdutoOpcao {
 
 	@Id
 	@JdbcTypeCode(SqlTypes.BINARY)
 	@Column(name = "id", columnDefinition = "BINARY(16)")
 	private UUID id;
 
-	@Column(name = "nome", nullable = false, length = 140, unique = true)
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "grupo_id", nullable = false, columnDefinition = "BINARY(16)")
+	private ProdutoGrupoOpcao grupo;
+
+	@Column(name = "nome", nullable = false, length = 60)
 	@Convert(converter = UppercaseConverter.class)
 	private String nome;
 
-	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-	@Fetch(FetchMode.SUBSELECT)
-	private List<ProdutoMedida> medidas = new ArrayList<>();
-
-	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-	@Fetch(FetchMode.SUBSELECT)
+	@OneToMany(mappedBy = "opcao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	private List<ProdutoComponente> componentes = new ArrayList<>();
 
-	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-	@Fetch(FetchMode.SUBSELECT)
-	private List<ProdutoGrupoOpcao> gruposOpcoes = new ArrayList<>();
+	@OneToMany(mappedBy = "opcao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	private List<ProdutoOpcaoContribuicao> contribuicoes = new ArrayList<>();
 
 	@PrePersist
 	public void prePersist() {
 		if (this.id == null) {
 			this.id = UUID.randomUUID();
 		}
-	}
-
-	public void setMedidas(List<ProdutoMedida> medidas) {
-		this.medidas.clear();
-		if (medidas == null) {
-			return;
-		}
-		medidas.forEach(this::addMedida);
-	}
-
-	public void addMedida(ProdutoMedida medida) {
-		medida.setProduto(this);
-		this.medidas.add(medida);
 	}
 
 	public void setComponentes(List<ProdutoComponente> componentes) {
@@ -81,21 +66,21 @@ public class Produto {
 	}
 
 	public void addComponente(ProdutoComponente componente) {
-		componente.setProduto(this);
+		componente.setOpcao(this);
 		this.componentes.add(componente);
 	}
 
-	public void setGruposOpcoes(List<ProdutoGrupoOpcao> gruposOpcoes) {
-		this.gruposOpcoes.clear();
-		if (gruposOpcoes == null) {
+	public void setContribuicoes(List<ProdutoOpcaoContribuicao> contribuicoes) {
+		this.contribuicoes.clear();
+		if (contribuicoes == null) {
 			return;
 		}
-		gruposOpcoes.forEach(this::addGrupoOpcao);
+		contribuicoes.forEach(this::addContribuicao);
 	}
 
-	public void addGrupoOpcao(ProdutoGrupoOpcao grupo) {
-		grupo.setProduto(this);
-		this.gruposOpcoes.add(grupo);
+	public void addContribuicao(ProdutoOpcaoContribuicao contribuicao) {
+		contribuicao.setOpcao(this);
+		this.contribuicoes.add(contribuicao);
 	}
 
 	public UUID getId() {
@@ -106,6 +91,14 @@ public class Produto {
 		this.id = id;
 	}
 
+	public ProdutoGrupoOpcao getGrupo() {
+		return grupo;
+	}
+
+	public void setGrupo(ProdutoGrupoOpcao grupo) {
+		this.grupo = grupo;
+	}
+
 	public String getNome() {
 		return nome;
 	}
@@ -114,16 +107,12 @@ public class Produto {
 		this.nome = nome;
 	}
 
-	public List<ProdutoMedida> getMedidas() {
-		return medidas;
-	}
-
 	public List<ProdutoComponente> getComponentes() {
 		return componentes;
 	}
 
-	public List<ProdutoGrupoOpcao> getGruposOpcoes() {
-		return gruposOpcoes;
+	public List<ProdutoOpcaoContribuicao> getContribuicoes() {
+		return contribuicoes;
 	}
 
 	@Override
@@ -139,7 +128,7 @@ public class Produto {
 		if (obj == null || getClass() != obj.getClass()) {
 			return false;
 		}
-		Produto other = (Produto) obj;
+		ProdutoOpcao other = (ProdutoOpcao) obj;
 		return Objects.equals(id, other.id);
 	}
 }

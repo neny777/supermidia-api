@@ -24,22 +24,20 @@ import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
 import br.com.supermidia.produto.domain.Produto;
-import br.com.supermidia.produto.domain.ProdutoMateriaCalculo;
-import br.com.supermidia.produto.domain.ProdutoMateriaParametroCalculo;
-import br.com.supermidia.produto.domain.ProdutoServicoCalculo;
-import br.com.supermidia.produto.domain.ProdutoServicoParametroCalculo;
+import br.com.supermidia.produto.domain.ProdutoComponente;
+import br.com.supermidia.produto.domain.ProdutoComponenteParametro;
+import br.com.supermidia.produto.domain.ProdutoMedida;
+import br.com.supermidia.produto.domain.ProdutoParametroVinculoMedida;
+import br.com.supermidia.produto.domain.TipoItemComponente;
 import br.com.supermidia.servico.domain.Servico;
 import br.com.supermidia.servico.domain.UnidadeServico;
 
 /**
- * Prova de fogo da arquitetura: monta um produto "LONA" como template real
- * (composição de matérias + serviços + cálculos + parâmetros + markup) e
- * confere se o motor reproduz a composição esperada.
+ * Prova de fogo da arquitetura: um produto "LONA" declarado como template
+ * (componentes base + medida BORDA vinculada ×2) reproduz a composição
+ * esperada. Preços da tabela legada (calculadoras/precos.php).
  *
- * Preços baseados na tabela legada (calculadoras/precos.php):
- * impressão 8,50 · lona padrão 8,50 · lona refile 1,00 · ilhós 0,15.
- *
- * Cenário: lona 1,00m (altura) x 2,00m (largura), quantidade 2, cliente REVENDA.
+ * Cenário: lona 1,00m x 2,00m, quantidade 2, cliente REVENDA.
  */
 @ExtendWith(MockitoExtension.class)
 class ProdutoCalculoLonaCenarioTest {
@@ -57,7 +55,7 @@ class ProdutoCalculoLonaCenarioTest {
 	@Test
 	void deveReproduzirOTemplateDeLonaComposto() {
 		UUID produtoId = UUID.randomUUID();
-		Produto lona = montarProdutoLona(produtoId);
+		Produto lona = montarProdutoLona(produtoId, null); // sem borda padrão
 		when(produtoService.findById(produtoId)).thenReturn(lona);
 
 		ProdutoCalculoRequest request = request("100", "200", "2");
@@ -65,69 +63,76 @@ class ProdutoCalculoLonaCenarioTest {
 
 		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request);
 
-		// --- Matérias ---
-		// Lona: areaBase = (1,00 x 2,00) x 2 = 4 m² ; com fator 1,21 => 4,84 m² ; x 8,50 = 41,14
+		// Lona: (1,00 x 2,00) x 2 = 4 m² x fator 1,21 => 4,84 m² x 8,50 = 41,14
 		ProdutoCalculoItemResponse lonaItem = item(response.getMateriais(), "LONA");
 		assertThat(lonaItem.getQuantidadeCalculada()).isEqualByComparingTo("4.84");
 		assertThat(lonaItem.getValorTotal()).isEqualByComparingTo("41.14");
 
-		// Ilhós: perímetro = (1,00 + 2,00) x 2 x 2 = 12 m ; ceil(12 / 0,25) = 48 un ; x 0,15 = 7,20
+		// Ilhós: perímetro 12 m ; ceil(12 / 0,25) = 48 un x 0,15 = 7,20
 		ProdutoCalculoItemResponse ilhosItem = item(response.getMateriais(), "ILHOS");
 		assertThat(ilhosItem.getQuantidadeCalculada()).isEqualByComparingTo("48");
 		assertThat(ilhosItem.getValorTotal()).isEqualByComparingTo("7.20");
 
-		// --- Serviços ---
-		// Impressão: 4 m² x 8,50 = 34,00
-		ProdutoCalculoItemResponse impressaoItem = item(response.getServicos(), "IMPRESSAO");
-		assertThat(impressaoItem.getQuantidadeCalculada()).isEqualByComparingTo("4");
-		assertThat(impressaoItem.getValorTotal()).isEqualByComparingTo("34.00");
+		// Impressão: 4 m² x 8,50 = 34,00 · Refile: 12 m x 1,00 = 12,00
+		assertThat(item(response.getServicos(), "IMPRESSAO").getValorTotal()).isEqualByComparingTo("34.00");
+		assertThat(item(response.getServicos(), "REFILE").getValorTotal()).isEqualByComparingTo("12.00");
 
-		// Refile: perímetro 12 m x 1,00 = 12,00
-		ProdutoCalculoItemResponse refileItem = item(response.getServicos(), "REFILE");
-		assertThat(refileItem.getQuantidadeCalculada()).isEqualByComparingTo("12");
-		assertThat(refileItem.getValorTotal()).isEqualByComparingTo("12.00");
-
-		// --- Totais ---
-		assertThat(response.getTotalMateriais()).isEqualByComparingTo("48.34"); // 41,14 + 7,20
-		assertThat(response.getTotalServicos()).isEqualByComparingTo("46.00"); // 34,00 + 12,00
-		assertThat(response.getTotalGeral()).isEqualByComparingTo("94.34"); // custo total
-
-		// --- Preços (margem automática) ---
-		// razão serviço/material = 46,00/48,34 ≈ 0,9516 ; 1 - 0,9516 < 0,35 => trava no piso de 35%
+		// Totais e preços (margem trava no piso de 35%)
+		assertThat(response.getTotalMateriais()).isEqualByComparingTo("48.34");
+		assertThat(response.getTotalServicos()).isEqualByComparingTo("46.00");
+		assertThat(response.getTotalGeral()).isEqualByComparingTo("94.34");
 		assertThat(response.getMarkupAtacado()).isEqualByComparingTo("35.00");
-		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("127.36"); // 94,34 x 1,35
-		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("176.34"); // 127,36 x 1,3846
-		// Cliente REVENDA => preço sugerido é o de atacado
+		assertThat(response.getPrecoAtacado()).isEqualByComparingTo("127.36");
+		assertThat(response.getPrecoVarejo()).isEqualByComparingTo("176.34");
 		assertThat(response.getPrecoSugerido()).isEqualByComparingTo("127.36");
+	}
+
+	@Test
+	void bordaDeclaradaDeveCrescerEmDobroPorDimensao() {
+		// Borda padrão 10cm ×2 => lona vira (1,20 x 2,20) x 2 = 5,28 m² x 1,21 = 6,3888 m²
+		UUID produtoId = UUID.randomUUID();
+		Produto lona = montarProdutoLona(produtoId, "10");
+		when(produtoService.findById(produtoId)).thenReturn(lona);
+
+		ProdutoCalculoResponse response = calculoService.calcular(produtoId, request("100", "200", "2"));
+
+		ProdutoCalculoItemResponse lonaItem = item(response.getMateriais(), "LONA");
+		assertThat(lonaItem.getQuantidadeCalculada()).isEqualByComparingTo("6.3888");
+		// impressão continua cobrindo só a área nominal
+		assertThat(item(response.getServicos(), "IMPRESSAO").getQuantidadeCalculada()).isEqualByComparingTo("4");
 	}
 
 	// --- montagem do template ---
 
-	private Produto montarProdutoLona(UUID produtoId) {
+	private Produto montarProdutoLona(UUID produtoId, String bordaPadrao) {
 		Produto produto = new Produto();
 		produto.setId(produtoId);
 		produto.setNome("LONA 440 BASICA");
 
-		ProdutoMateriaCalculo lona = materiaCalculo(
-				materia("LONA", UnidadeMateria.M2, "8.50"),
-				calculo("AREA COM FATOR", TipoCalculo.AREA_COM_FATOR, BaseOperacionalCalculo.AREA),
-				materiaParametro(CodigoParametroCalculo.FATOR, "1.21"));
+		ProdutoMedida borda = new ProdutoMedida();
+		borda.setNome("BORDA");
+		borda.setUnidade("cm");
+		borda.setValorPadrao(bordaPadrao == null ? BigDecimal.ZERO : new BigDecimal(bordaPadrao));
+		produto.addMedida(borda);
 
-		ProdutoMateriaCalculo ilhos = materiaCalculo(
-				materia("ILHOS", UnidadeMateria.UN, "0.15"),
+		// Lona: área com acréscimos (borda ×2) e fator 1,21
+		produto.addComponente(componenteMateria(materia("LONA", UnidadeMateria.M2, "8.50"),
+				calculo("LONA COM ACRESCIMOS E FATOR", TipoCalculo.AREA_COM_ACRESCIMOS_E_FATOR, BaseOperacionalCalculo.AREA),
+				paramComVinculoBorda(CodigoParametroCalculo.ACRESCIMO_ALTURA),
+				paramComVinculoBorda(CodigoParametroCalculo.ACRESCIMO_LARGURA),
+				param(CodigoParametroCalculo.FATOR, "1.21")));
+
+		// Ilhós por espaçamento de 25cm
+		produto.addComponente(componenteMateria(materia("ILHOS", UnidadeMateria.UN, "0.15"),
 				calculo("ILHOS", TipoCalculo.PERIMETRO_COM_ESPACAMENTO, BaseOperacionalCalculo.PERIMETRO),
-				materiaParametro(CodigoParametroCalculo.ESPACAMENTO, "25"));
+				param(CodigoParametroCalculo.ESPACAMENTO, "25")));
 
-		ProdutoServicoCalculo impressao = servicoCalculo(
-				servico("IMPRESSAO", UnidadeServico.M2, "8.50"),
-				calculo("IMPRESSAO", TipoCalculo.AREA_BASE, BaseOperacionalCalculo.AREA));
+		// Impressão e refile
+		produto.addComponente(componenteServico(servico("IMPRESSAO", UnidadeServico.M2, "8.50"),
+				calculo("IMPRESSAO", TipoCalculo.AREA_BASE, BaseOperacionalCalculo.AREA)));
+		produto.addComponente(componenteServico(servico("REFILE", UnidadeServico.M, "1.00"),
+				calculo("REFILE", TipoCalculo.PERIMETRO_BASE, BaseOperacionalCalculo.PERIMETRO)));
 
-		ProdutoServicoCalculo refile = servicoCalculo(
-				servico("REFILE", UnidadeServico.M, "1.00"),
-				calculo("REFILE", TipoCalculo.PERIMETRO_BASE, BaseOperacionalCalculo.PERIMETRO));
-
-		produto.setMateriasCalculo(List.of(lona, ilhos));
-		produto.setServicosCalculo(List.of(impressao, refile));
 		return produto;
 	}
 
@@ -165,33 +170,41 @@ class ProdutoCalculoLonaCenarioTest {
 		return calculo;
 	}
 
-	private ProdutoMateriaParametroCalculo materiaParametro(CodigoParametroCalculo codigo, String valor) {
-		ProdutoMateriaParametroCalculo parametro = new ProdutoMateriaParametroCalculo();
+	private ProdutoComponenteParametro param(CodigoParametroCalculo codigo, String valor) {
+		ProdutoComponenteParametro parametro = new ProdutoComponenteParametro();
 		parametro.setCodigo(codigo);
-		parametro.setValor(new BigDecimal(valor));
+		parametro.setValorConstante(new BigDecimal(valor));
 		return parametro;
 	}
 
-	private ProdutoMateriaCalculo materiaCalculo(Materia materia, Calculo calculo,
-			ProdutoMateriaParametroCalculo... parametros) {
-		ProdutoMateriaCalculo item = new ProdutoMateriaCalculo();
-		item.setMateria(materia);
-		item.setCalculo(calculo);
-		if (parametros.length > 0) {
-			item.setParametros(List.of(parametros));
-		}
-		return item;
+	private ProdutoComponenteParametro paramComVinculoBorda(CodigoParametroCalculo codigo) {
+		ProdutoComponenteParametro parametro = new ProdutoComponenteParametro();
+		parametro.setCodigo(codigo);
+		ProdutoParametroVinculoMedida vinculo = new ProdutoParametroVinculoMedida();
+		vinculo.setMedidaNome("BORDA");
+		vinculo.setMultiplicador(new BigDecimal("2"));
+		parametro.addVinculo(vinculo);
+		return parametro;
 	}
 
-	private ProdutoServicoCalculo servicoCalculo(Servico servico, Calculo calculo,
-			ProdutoServicoParametroCalculo... parametros) {
-		ProdutoServicoCalculo item = new ProdutoServicoCalculo();
-		item.setServico(servico);
-		item.setCalculo(calculo);
-		if (parametros.length > 0) {
-			item.setParametros(List.of(parametros));
-		}
-		return item;
+	private ProdutoComponente componenteMateria(Materia materia, Calculo calculo,
+			ProdutoComponenteParametro... parametros) {
+		ProdutoComponente componente = new ProdutoComponente();
+		componente.setTipoItem(TipoItemComponente.MATERIA);
+		componente.setMateria(materia);
+		componente.setCalculo(calculo);
+		componente.setParametros(List.of(parametros));
+		return componente;
+	}
+
+	private ProdutoComponente componenteServico(Servico servico, Calculo calculo,
+			ProdutoComponenteParametro... parametros) {
+		ProdutoComponente componente = new ProdutoComponente();
+		componente.setTipoItem(TipoItemComponente.SERVICO);
+		componente.setServico(servico);
+		componente.setCalculo(calculo);
+		componente.setParametros(List.of(parametros));
+		return componente;
 	}
 
 	private ProdutoCalculoRequest request(String altura, String largura, String quantidade) {

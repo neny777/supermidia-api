@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class ProdutoResponse {
+public class ProdutoOpcaoResponse {
 
 	private UUID id;
 	private String nome;
-	private List<ProdutoMedidaResponse> medidas = new ArrayList<>();
 	private List<ProdutoMateriaCalculoResponse> materiasCalculo = new ArrayList<>();
 	private List<ProdutoServicoCalculoResponse> servicosCalculo = new ArrayList<>();
-	private List<ProdutoGrupoOpcaoResponse> gruposOpcoes = new ArrayList<>();
+	private List<ProdutoContribuicaoResponse> contribuicoes = new ArrayList<>();
 
 	public UUID getId() {
 		return id;
@@ -29,22 +28,6 @@ public class ProdutoResponse {
 		this.nome = nome;
 	}
 
-	public List<ProdutoMedidaResponse> getMedidas() {
-		return medidas;
-	}
-
-	public void setMedidas(List<ProdutoMedidaResponse> medidas) {
-		this.medidas = medidas;
-	}
-
-	public List<ProdutoGrupoOpcaoResponse> getGruposOpcoes() {
-		return gruposOpcoes;
-	}
-
-	public void setGruposOpcoes(List<ProdutoGrupoOpcaoResponse> gruposOpcoes) {
-		this.gruposOpcoes = gruposOpcoes;
-	}
-
 	public List<ProdutoMateriaCalculoResponse> getMateriasCalculo() {
 		return materiasCalculo;
 	}
@@ -59,5 +42,13 @@ public class ProdutoResponse {
 
 	public void setServicosCalculo(List<ProdutoServicoCalculoResponse> servicosCalculo) {
 		this.servicosCalculo = servicosCalculo;
+	}
+
+	public List<ProdutoContribuicaoResponse> getContribuicoes() {
+		return contribuicoes;
+	}
+
+	public void setContribuicoes(List<ProdutoContribuicaoResponse> contribuicoes) {
+		this.contribuicoes = contribuicoes;
 	}
 }

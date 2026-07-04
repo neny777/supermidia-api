@@ -8,10 +8,10 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import br.com.supermidia.calculo.domain.Calculo;
-import br.com.supermidia.servico.domain.Servico;
+import br.com.supermidia.converter.UppercaseConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
@@ -21,9 +21,14 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+/**
+ * Grupo de escolha do produto no orçamento (unifica acabamento e seleção).
+ * Escolha única entre as opções; se não for obrigatório, "Nenhum" é permitido.
+ * Ex.: "RECORTE" [Reto | Contorno], "ILHÓS" [Com ilhós].
+ */
 @Entity
-@Table(name = "produtos_servicos_calculos")
-public class ProdutoServicoCalculo {
+@Table(name = "produtos_grupos_opcoes")
+public class ProdutoGrupoOpcao {
 
 	@Id
 	@JdbcTypeCode(SqlTypes.BINARY)
@@ -34,22 +39,34 @@ public class ProdutoServicoCalculo {
 	@JoinColumn(name = "produto_id", nullable = false, columnDefinition = "BINARY(16)")
 	private Produto produto;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "servico_id", nullable = false, columnDefinition = "BINARY(16)")
-	private Servico servico;
+	@Column(name = "nome", nullable = false, length = 60)
+	@Convert(converter = UppercaseConverter.class)
+	private String nome;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "calculo_id", nullable = false, columnDefinition = "BINARY(16)")
-	private Calculo calculo;
+	@Column(name = "obrigatorio", nullable = false)
+	private boolean obrigatorio;
 
-	@OneToMany(mappedBy = "produtoServicoCalculo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-	private List<ProdutoServicoParametroCalculo> parametros = new ArrayList<>();
+	@OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	private List<ProdutoOpcao> opcoes = new ArrayList<>();
 
 	@PrePersist
 	public void prePersist() {
 		if (this.id == null) {
 			this.id = UUID.randomUUID();
 		}
+	}
+
+	public void setOpcoes(List<ProdutoOpcao> opcoes) {
+		this.opcoes.clear();
+		if (opcoes == null) {
+			return;
+		}
+		opcoes.forEach(this::addOpcao);
+	}
+
+	public void addOpcao(ProdutoOpcao opcao) {
+		opcao.setGrupo(this);
+		this.opcoes.add(opcao);
 	}
 
 	public UUID getId() {
@@ -68,37 +85,24 @@ public class ProdutoServicoCalculo {
 		this.produto = produto;
 	}
 
-	public Servico getServico() {
-		return servico;
+	public String getNome() {
+		return nome;
 	}
 
-	public void setServico(Servico servico) {
-		this.servico = servico;
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
 
-	public Calculo getCalculo() {
-		return calculo;
+	public boolean isObrigatorio() {
+		return obrigatorio;
 	}
 
-	public void setCalculo(Calculo calculo) {
-		this.calculo = calculo;
+	public void setObrigatorio(boolean obrigatorio) {
+		this.obrigatorio = obrigatorio;
 	}
 
-	public void setParametros(List<ProdutoServicoParametroCalculo> parametros) {
-		this.parametros.clear();
-		if (parametros == null) {
-			return;
-		}
-		parametros.forEach(this::addParametro);
-	}
-
-	public void addParametro(ProdutoServicoParametroCalculo parametro) {
-		parametro.setProdutoServicoCalculo(this);
-		this.parametros.add(parametro);
-	}
-
-	public List<ProdutoServicoParametroCalculo> getParametros() {
-		return parametros;
+	public List<ProdutoOpcao> getOpcoes() {
+		return opcoes;
 	}
 
 	@Override
@@ -114,7 +118,7 @@ public class ProdutoServicoCalculo {
 		if (obj == null || getClass() != obj.getClass()) {
 			return false;
 		}
-		ProdutoServicoCalculo other = (ProdutoServicoCalculo) obj;
+		ProdutoGrupoOpcao other = (ProdutoGrupoOpcao) obj;
 		return Objects.equals(id, other.id);
 	}
 }

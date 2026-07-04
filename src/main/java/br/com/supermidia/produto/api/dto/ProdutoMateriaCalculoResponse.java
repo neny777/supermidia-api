@@ -9,6 +9,7 @@ public class ProdutoMateriaCalculoResponse {
 	private UUID id;
 	private UUID materiaId;
 	private String materiaNome;
+	private String grupoSlot;
 	private UUID calculoId;
 	private String calculoNome;
 	private List<ProdutoParametroCalculoResponse> parametros = new ArrayList<>();
@@ -35,6 +36,14 @@ public class ProdutoMateriaCalculoResponse {
 
 	public void setMateriaNome(String materiaNome) {
 		this.materiaNome = materiaNome;
+	}
+
+	public String getGrupoSlot() {
+		return grupoSlot;
+	}
+
+	public void setGrupoSlot(String grupoSlot) {
+		this.grupoSlot = grupoSlot;
 	}
 
 	public UUID getCalculoId() {
