@@ -8,6 +8,9 @@ target/
 *.bak
 .dbeaver/
 .apt_generated
+
+# Frontend compilado embutido no build de deploy (gerado por deploy/build-pacote.sh)
+src/main/resources/static/
 .classpath
 .factorypath
 .project

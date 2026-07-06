@@ -65,7 +65,11 @@ public class SecurityConfiguration {
 				.requestMatchers("/api/servicos/**").hasRole(Permissoes.SERVICOS)
 				.requestMatchers("/api/calculos/**").hasRole(Permissoes.PRODUTOS)
 				.requestMatchers("/api/produtos/**").hasRole(Permissoes.PRODUTOS)
-				.requestMatchers("/api/vendas/**").hasRole(Permissoes.VENDAS))
+				.requestMatchers("/api/vendas/**").hasRole(Permissoes.VENDAS)
+				// Qualquer endpoint de API sem regra específica exige autenticação.
+				.requestMatchers("/api/**").authenticated()
+				// O restante é o frontend (arquivos estáticos + rotas da SPA).
+				.anyRequest().permitAll())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authenticationProvider(authenticationProvider)
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
