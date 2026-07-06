@@ -33,18 +33,16 @@ public class UsuarioController {
 		this.usuarioAtualMapper = usuarioAtualMapper;
 	}
 
-	// Endpoint para cadastro de um novo usuário
+	// Cadastro de um novo usuário (a resposta traz a senha inicial, exibida uma única vez)
 	@PostMapping
-	public ResponseEntity<Usuario> createUsuario(@RequestBody UsuarioDTO usuarioDTO) {
-		Usuario usuario = usuarioService.create(usuarioDTO);
-		return ResponseEntity.status(HttpStatus.CREATED).body(usuario);
+	public ResponseEntity<UsuarioDTO> createUsuario(@RequestBody UsuarioDTO usuarioDTO) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.create(usuarioDTO));
 	}
 
-	// Endpoint para editação de um usuário
+	// Edição das permissões de um usuário
 	@PutMapping
-	public ResponseEntity<Usuario> updatePermissoesUsuario(@RequestBody UsuarioDTO usuarioDTO) {
-		Usuario usuario = usuarioService.update(usuarioDTO.getId(), usuarioDTO.getPermissoes());
-		return ResponseEntity.ok(usuario);
+	public ResponseEntity<UsuarioDTO> updatePermissoesUsuario(@RequestBody UsuarioDTO usuarioDTO) {
+		return ResponseEntity.ok(usuarioService.update(usuarioDTO.getId(), usuarioDTO.getPermissoes()));
 	}
 
 	// Endpoint para listar todos os usuários

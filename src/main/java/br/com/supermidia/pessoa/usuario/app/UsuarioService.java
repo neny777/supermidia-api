@@ -6,66 +6,62 @@ import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import br.com.supermidia.pessoa.colaborador.api.ColaboradorMapper;
-import br.com.supermidia.pessoa.colaborador.api.dto.ColaboradorDTO;
-import br.com.supermidia.pessoa.colaborador.app.ColaboradorService;
 import br.com.supermidia.pessoa.colaborador.domain.Colaborador;
+import br.com.supermidia.pessoa.colaborador.infra.ColaboradorRepository;
 import br.com.supermidia.pessoa.usuario.api.UsuarioMapper;
 import br.com.supermidia.pessoa.usuario.api.dto.UsuarioDTO;
 import br.com.supermidia.pessoa.usuario.domain.Usuario;
 import br.com.supermidia.pessoa.usuario.domain.UsuarioPermissoes;
 import br.com.supermidia.pessoa.usuario.infra.UsuarioRepository;
 import br.com.supermidia.security.Permissoes;
-import jakarta.transaction.Transactional;
 
 @Service
 public class UsuarioService {
 	private final UsuarioRepository usuarioRepository;
-	private final ColaboradorService colaboradorService;
+	private final ColaboradorRepository colaboradorRepository;
 	private final UsuarioMapper usuarioMapper;
-	private final ColaboradorMapper colaboradorMapper;
 	private final PasswordEncoder passwordEncoder;
 
-	public UsuarioService(UsuarioRepository usuarioRepository, ColaboradorService colaboradorService,
-			UsuarioMapper usuarioMapper, ColaboradorMapper colaboradorMapper, PasswordEncoder passwordEncoder) {
+	public UsuarioService(UsuarioRepository usuarioRepository, ColaboradorRepository colaboradorRepository,
+			UsuarioMapper usuarioMapper, PasswordEncoder passwordEncoder) {
 		this.usuarioRepository = usuarioRepository;
-		this.colaboradorService = colaboradorService;
+		this.colaboradorRepository = colaboradorRepository;
 		this.usuarioMapper = usuarioMapper;
-		this.colaboradorMapper = colaboradorMapper;
 		this.passwordEncoder = passwordEncoder;
 	}
 
-	// Criar um novo usuário
-	public Usuario create(UsuarioDTO usuarioDTO) {
-		// Buscar colaborador existente
-		ColaboradorDTO colaboradorDTO = colaboradorService.findById(usuarioDTO.getId());
-		
-		if (colaboradorDTO == null) {
-			throw new IllegalArgumentException("Colaborador não encontrado.");
-		}
-		
-		Colaborador colaborador = colaboradorMapper.toColaborador(colaboradorDTO);
+	/**
+	 * Cria o usuário VINCULANDO o colaborador já existente (entidade gerenciada —
+	 * jamais recriar o grafo pessoa/física, senão o JPA insere uma Pessoa
+	 * duplicada). Devolve a senha inicial gerada, exibida uma única vez.
+	 */
+	@Transactional
+	public UsuarioDTO create(UsuarioDTO usuarioDTO) {
+		Colaborador colaborador = colaboradorRepository.findById(usuarioDTO.getId())
+				.orElseThrow(() -> new IllegalArgumentException("Colaborador não encontrado."));
 
-		if (colaborador.getUsuario() != null) {
+		if (usuarioRepository.existsById(colaborador.getId())) {
 			throw new IllegalArgumentException("Este colaborador já possui um usuário associado.");
 		}
 
-		// Criar usuário
 		usuarioDTO.setPermissoes(validarPermissoes(usuarioDTO.getPermissoes()));
 		Usuario usuario = usuarioMapper.toEntity(usuarioDTO);
+		usuario.setId(null); // o id deriva do colaborador (@MapsId) na persistência
 		usuario.setColaborador(colaborador);
 
-		// Gerar senha aleatória com base no UUID
-		String senhaAleatoria = gerarSenhaAleatoria();
-		usuario.setSenha(passwordEncoder.encode(senhaAleatoria));
+		String senhaInicial = gerarSenhaAleatoria();
+		usuario.setSenha(passwordEncoder.encode(senhaInicial));
 
-		// Persistir
-		return usuarioRepository.save(usuario);
+		UsuarioDTO response = usuarioMapper.toResponse(usuarioRepository.save(usuario));
+		response.setSenhaInicial(senhaInicial);
+		return response;
 	}
 
-	// Editar um novo usuário
-	public Usuario update(UUID usuarioId, Set<String> novasPermissoes) {
+	// Atualizar as permissões de um usuário
+	@Transactional
+	public UsuarioDTO update(UUID usuarioId, Set<String> novasPermissoes) {
 		Set<String> permissoesValidadas = validarPermissoes(novasPermissoes);
 		Usuario usuario = usuarioRepository.findById(usuarioId)
 				.orElseThrow(() -> new UsuarioNotFoundException("Usuário não encontrado."));
@@ -81,8 +77,7 @@ public class UsuarioService {
 			usuario.getPermissoes().add(permissao);
 		});
 
-		// Salvar alterações
-		return usuarioRepository.save(usuario);
+		return usuarioMapper.toResponse(usuarioRepository.save(usuario));
 	}
 
 	// Listar todos os usuários retornando DTOs
@@ -128,7 +123,8 @@ public class UsuarioService {
 	}
 
 	private String gerarSenhaAleatoria() {
-		return UUID.randomUUID().toString().replace("-", "");
+		// 10 caracteres: forte o bastante e digitável (entregue em mãos ao colaborador)
+		return UUID.randomUUID().toString().replace("-", "").substring(0, 10);
 	}
 
 	private Set<String> validarPermissoes(Set<String> permissoes) {
