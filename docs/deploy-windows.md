@@ -23,15 +23,23 @@ ex.: `C:\supermidia`.
 
 ## 3. Importar o banco de dados
 
-No Prompt de Comando, dentro da pasta:
+> O instalador do MySQL **não** coloca o comando `mysql` no PATH do Windows —
+> por isso use o cliente do menu Iniciar:
 
-```
-mysql -u root -p < supermidia-dump.sql
+1. Menu **Iniciar** → **"MySQL 8.0 Command Line Client"** → digite a senha do root.
+2. Dentro dele, rode (ajuste o caminho se a pasta for outra):
+
+```sql
+source C:/supermidia/supermidia-dump.sql
 ```
 
-(Digite a senha do root definida na instalação. Isso cria o banco `supermidia`
-com todos os cadastros: matérias, serviços, cálculos, produtos e usuários —
-as mesmas senhas de login do ambiente atual.)
+3. Confirme com `SHOW DATABASES;` — deve listar `supermidia`.
+
+(Alternativa pelo Prompt de Comando, com caminho completo:
+`"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p < supermidia-dump.sql`)
+
+Isso cria o banco `supermidia` com todos os cadastros: matérias, serviços,
+cálculos, produtos e usuários — as mesmas senhas de login do ambiente atual.
 
 ## 4. Liberar a porta 8080 no Firewall do Windows
 
