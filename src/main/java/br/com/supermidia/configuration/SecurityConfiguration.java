@@ -56,6 +56,9 @@ public class SecurityConfiguration {
 				.permitAll().requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Permitir OPTIONS
 				.requestMatchers("/api/pessoas/**")
 				.hasAnyRole(Permissoes.CLIENTES, Permissoes.COLABORADORES, Permissoes.FORNECEDORES, Permissoes.PARCEIROS)
+				// Quem cadastra usuários precisa listar colaboradores sem login
+				.requestMatchers("/api/colaboradores/nao-usuario")
+				.hasAnyRole(Permissoes.USUARIOS, Permissoes.COLABORADORES)
 				.requestMatchers("/api/colaboradores/**").hasRole(Permissoes.COLABORADORES)
 				.requestMatchers("/api/usuarios/**").hasRole(Permissoes.USUARIOS)
 				.requestMatchers("/api/clientes/**").hasRole(Permissoes.CLIENTES)

@@ -103,7 +103,15 @@ public class ColaboradorService {
 	}
 
 	public List<ColaboradorDTO> findAll() {
-		List<Colaborador> colaboradores = colaboradorRepository.findAll();
+		return toDTOsBasicos(colaboradorRepository.findAll());
+	}
+
+	/** Colaboradores que ainda não são usuários (para o cadastro de novo usuário). */
+	public List<ColaboradorDTO> findNaoUsuarios() {
+		return toDTOsBasicos(colaboradorRepository.findNaoUsuarios());
+	}
+
+	private List<ColaboradorDTO> toDTOsBasicos(List<Colaborador> colaboradores) {
 		List<ColaboradorDTO> colaboradoresDTO = new ArrayList<>();
 		for (Colaborador colaborador : colaboradores) {
 			ColaboradorDTO dto = new ColaboradorDTO();

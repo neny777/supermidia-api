@@ -27,6 +27,13 @@ public class ColaboradorController {
 	public ColaboradorController(ColaboradorService colaboradorService) {
 		this.colaboradorService = colaboradorService;
 	}
+
+	// Colaboradores que ainda não são usuários (para o cadastro de novo usuário)
+	@GetMapping("/nao-usuario")
+	public ResponseEntity<List<ColaboradorDTO>> findNaoUsuarios() {
+		return ResponseEntity.ok(colaboradorService.findNaoUsuarios());
+	}
+
 	// Buscar pessoa física
 	@GetMapping("/fisica/{id}")
 	public ResponseEntity<ColaboradorDTO> findPessoaFisicaById(@PathVariable UUID id) {
