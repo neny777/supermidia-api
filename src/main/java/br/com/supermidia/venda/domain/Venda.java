@@ -37,6 +37,9 @@ public class Venda {
 	/** Validade padrão do orçamento em dias (futuro: configuração global do sistema). */
 	public static final int VALIDADE_ORCAMENTO_DIAS = 15;
 
+	/** Janela de edição/exclusão após a criação, em horas (futuro: configuração global). */
+	public static final int EDICAO_HORAS = 1;
+
 	@Id
 	@JdbcTypeCode(SqlTypes.BINARY)
 	@Column(name = "id", columnDefinition = "BINARY(16)")
@@ -81,6 +84,16 @@ public class Venda {
 				.filter(Objects::nonNull)
 				.reduce(BigDecimal.ZERO, BigDecimal::add)
 				.setScale(2, RoundingMode.HALF_UP);
+	}
+
+	/**
+	 * Dentro da janela de arrependimento: orçamento OU OS podem ser editados/
+	 * excluídos na primeira hora (fase de testes). Futuro: OS com pagamento
+	 * recebido ou produção iniciada será bloqueada.
+	 */
+	public boolean isEditavel() {
+		return (status == StatusVenda.ORCAMENTO || status == StatusVenda.ORDEM_SERVICO)
+				&& dataCriacao != null && dataCriacao.plusHours(EDICAO_HORAS).isAfter(LocalDateTime.now());
 	}
 
 	/** Orçamento vencido = passou da validade (só se aplica a orçamentos). */

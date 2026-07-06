@@ -13,6 +13,8 @@ public class ProdutoCalculoResponse {
 	private BigDecimal quantidade;
 	private List<ProdutoCalculoItemResponse> materiais = new ArrayList<>();
 	private List<ProdutoCalculoItemResponse> servicos = new ArrayList<>();
+	// Nomes dos materiais escolhidos nos slots (para a descrição do item da venda).
+	private List<String> materiaisEscolhidos = new ArrayList<>();
 	private BigDecimal totalMateriais;
 	private BigDecimal totalServicos;
 	private BigDecimal totalGeral;
@@ -76,6 +78,14 @@ public class ProdutoCalculoResponse {
 
 	public void setServicos(List<ProdutoCalculoItemResponse> servicos) {
 		this.servicos = servicos;
+	}
+
+	public List<String> getMateriaisEscolhidos() {
+		return materiaisEscolhidos;
+	}
+
+	public void setMateriaisEscolhidos(List<String> materiaisEscolhidos) {
+		this.materiaisEscolhidos = materiaisEscolhidos;
 	}
 
 	public BigDecimal getTotalMateriais() {

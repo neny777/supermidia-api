@@ -15,6 +15,7 @@ public interface VendaMapper {
 
 	@Mapping(target = "clienteId", source = "cliente.id")
 	@Mapping(target = "vencido", expression = "java(entity.isVencido())")
+	@Mapping(target = "editavel", expression = "java(entity.isEditavel())")
 	VendaResponse toResponse(Venda entity);
 
 	VendaItemResponse toResponse(ItemVenda entity);

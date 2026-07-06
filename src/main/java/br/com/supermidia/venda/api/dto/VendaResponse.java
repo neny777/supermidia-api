@@ -13,6 +13,7 @@ public class VendaResponse {
 	private UUID clienteId;
 	private StatusVenda status;
 	private boolean vencido;
+	private boolean editavel;
 	private LocalDateTime dataCriacao;
 	private BigDecimal total;
 	private List<VendaItemResponse> itens = new ArrayList<>();
@@ -47,6 +48,14 @@ public class VendaResponse {
 
 	public void setVencido(boolean vencido) {
 		this.vencido = vencido;
+	}
+
+	public boolean isEditavel() {
+		return editavel;
+	}
+
+	public void setEditavel(boolean editavel) {
+		this.editavel = editavel;
 	}
 
 	public LocalDateTime getDataCriacao() {

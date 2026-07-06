@@ -1,7 +1,10 @@
 package br.com.supermidia.venda.app;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -83,6 +86,44 @@ public class VendaService {
 				.orElseThrow(() -> new VendaNotFoundException("Venda não encontrada: " + id));
 	}
 
+	/** Exclusão definitiva, permitida só na janela de arrependimento (1h). */
+	@Transactional
+	public void excluir(UUID id) {
+		Venda venda = findById(id);
+		if (!venda.isEditavel()) {
+			throw new VendaValidationException(
+					"A janela de exclusão (" + Venda.EDICAO_HORAS + "h) expirou ou o status não permite — use o cancelamento.");
+		}
+		vendaRepository.delete(venda);
+	}
+
+	/** Edição completa (cliente/tipo/itens), permitida só na janela de arrependimento (1h). */
+	@Transactional
+	public Venda editar(UUID id, VendaCreateRequest request) {
+		Venda venda = findById(id);
+		if (!venda.isEditavel()) {
+			throw new VendaValidationException(
+					"A janela de edição (" + Venda.EDICAO_HORAS + "h) expirou ou o status não permite.");
+		}
+		Cliente cliente = clienteRepository.findById(request.getClienteId())
+				.orElseThrow(() -> new VendaValidationException("Cliente não encontrado: " + request.getClienteId()));
+		StatusVenda status = request.getStatus() == null ? venda.getStatus() : request.getStatus();
+		if (status == StatusVenda.CANCELADO) {
+			throw new VendaValidationException("Use a ação de cancelamento para cancelar a venda.");
+		}
+
+		venda.setCliente(cliente);
+		venda.setStatus(status);
+		List<ItemVenda> itens = new ArrayList<>();
+		for (VendaItemRequest itemRequest : request.getItens()) {
+			itens.add(congelarItem(itemRequest, cliente.getCategoria()));
+		}
+		venda.setItens(itens);
+		venda.renovarValidade(); // conteúdo novo = contagens novas (validade e janela)
+		venda.recalcularTotal();
+		return vendaRepository.save(venda);
+	}
+
 	@Transactional
 	public Venda converterParaOrdemServico(UUID id) {
 		Venda venda = findById(id);
@@ -139,6 +180,7 @@ public class VendaService {
 		ProdutoCalculoResponse calculo = produtoCalculoService.calcular(item.getProdutoId(), calculoRequest);
 
 		item.setProdutoNome(calculo.getProdutoNome());
+		item.setDescricao(montarDescricao(entrada, calculo));
 		item.setCustoTotal(calculo.getTotalGeral());
 		item.setMarkupAplicado(categoria == Categoria.R ? calculo.getMarkupAtacado() : calculo.getMarkupVarejo());
 		item.setPrecoSugerido(calculo.getPrecoSugerido());
@@ -149,6 +191,45 @@ public class VendaService {
 		calculo.getMateriais().forEach(linha -> detalhes.add(congelarDetalhe(linha)));
 		calculo.getServicos().forEach(linha -> detalhes.add(congelarDetalhe(linha)));
 		item.setDetalhes(detalhes);
+	}
+
+	/**
+	 * Descrição por extenso do item, congelada no snapshot. Formato estruturado
+	 * (evita concordância de gênero da prosa):
+	 * "1 × PRODUTO · MATERIAL ESCOLHIDO · A × L cm · MEDIDA v · OPÇÃO...".
+	 */
+	private String montarDescricao(VendaItemRequest entrada, ProdutoCalculoResponse calculo) {
+		StringBuilder texto = new StringBuilder();
+		texto.append(formatarNumero(entrada.getQuantidade())).append(" × ").append(calculo.getProdutoNome());
+		for (String material : calculo.getMateriaisEscolhidos()) {
+			texto.append(" · ").append(material);
+		}
+		texto.append(" · ").append(formatarNumero(entrada.getAltura())).append(" × ")
+				.append(formatarNumero(entrada.getLargura())).append(" cm");
+		if (entrada.getMedidas() != null) {
+			entrada.getMedidas().forEach((nome, valor) -> {
+				if (valor != null && valor.signum() != 0) {
+					texto.append(" · ").append(nome.toUpperCase()).append(" ").append(formatarNumero(valor));
+				}
+			});
+		}
+		Set<String> opcoes = new LinkedHashSet<>();
+		calculo.getMateriais().forEach(linha -> {
+			if (linha.getOpcaoNome() != null) {
+				opcoes.add(linha.getOpcaoNome());
+			}
+		});
+		calculo.getServicos().forEach(linha -> {
+			if (linha.getOpcaoNome() != null) {
+				opcoes.add(linha.getOpcaoNome());
+			}
+		});
+		opcoes.forEach(opcao -> texto.append(" · ").append(opcao));
+		return texto.length() > 500 ? texto.substring(0, 500) : texto.toString();
+	}
+
+	private String formatarNumero(BigDecimal valor) {
+		return valor == null ? "" : valor.stripTrailingZeros().toPlainString();
 	}
 
 	private String serializarEntrada(VendaItemRequest entrada) {

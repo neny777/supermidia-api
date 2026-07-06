@@ -17,10 +17,12 @@ public final class Permissoes {
 	public static final String SERVICOS = "servicos";
 	public static final String PRODUTOS = "produtos";
 	public static final String VENDAS = "vendas";
+	// Ver custos, margens e detalhamento das vendas (informação sensível).
+	public static final String CUSTOS = "custos";
 	public static final String USUARIOS = "usuarios";
 
 	public static final Set<String> TODAS = Set.of(CLIENTES, COLABORADORES, FORNECEDORES, PARCEIROS, GRUPOS,
-			MATERIAS, SERVICOS, PRODUTOS, VENDAS, USUARIOS);
+			MATERIAS, SERVICOS, PRODUTOS, VENDAS, CUSTOS, USUARIOS);
 
 	private Permissoes() {
 	}

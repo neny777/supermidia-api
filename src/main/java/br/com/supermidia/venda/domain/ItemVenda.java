@@ -47,6 +47,10 @@ public class ItemVenda {
 	@Column(name = "produto_nome", length = 140)
 	private String produtoNome;
 
+	// Descrição por extenso congelada (título do item e futuro texto da OS impressa).
+	@Column(name = "descricao", length = 500)
+	private String descricao;
+
 	@Column(name = "altura", precision = 12, scale = 2)
 	private BigDecimal altura;
 
@@ -126,6 +130,14 @@ public class ItemVenda {
 
 	public void setProdutoNome(String produtoNome) {
 		this.produtoNome = produtoNome;
+	}
+
+	public String getDescricao() {
+		return descricao;
+	}
+
+	public void setDescricao(String descricao) {
+		this.descricao = descricao;
 	}
 
 	public BigDecimal getAltura() {

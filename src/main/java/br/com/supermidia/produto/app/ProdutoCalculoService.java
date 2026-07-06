@@ -73,13 +73,14 @@ public class ProdutoCalculoService {
 
 		List<ProdutoCalculoItemResponse> materiais = new ArrayList<>();
 		List<ProdutoCalculoItemResponse> servicos = new ArrayList<>();
+		List<String> materiaisEscolhidosNomes = new ArrayList<>();
 		BigDecimal baseMateriais = BigDecimal.ZERO;
 		BigDecimal baseServicos = BigDecimal.ZERO;
 
 		// Componentes BASE: recebem contribuições das opções e formam a margem.
 		for (ProdutoComponente componente : produto.getComponentes()) {
 			ProdutoCalculoItemResponse item = calcularComponente(componente, medidas, contribuicoes,
-					materiasEscolhidas, null, context);
+					materiasEscolhidas, materiaisEscolhidosNomes, null, context);
 			if (componente.getTipoItem() == TipoItemComponente.MATERIA) {
 				materiais.add(item);
 				baseMateriais = baseMateriais.add(item.getValorTotal());
@@ -93,7 +94,7 @@ public class ProdutoCalculoService {
 		for (ProdutoOpcao opcao : opcoesAtivas) {
 			for (ProdutoComponente componente : opcao.getComponentes()) {
 				ProdutoCalculoItemResponse item = calcularComponente(componente, medidas, Map.of(),
-						materiasEscolhidas, opcao.getNome(), context);
+						materiasEscolhidas, materiaisEscolhidosNomes, opcao.getNome(), context);
 				if (componente.getTipoItem() == TipoItemComponente.MATERIA) {
 					materiais.add(item);
 				} else {
@@ -101,6 +102,7 @@ public class ProdutoCalculoService {
 				}
 			}
 		}
+		response.setMateriaisEscolhidos(materiaisEscolhidosNomes);
 
 		BigDecimal totalMateriais = somarTotais(materiais);
 		BigDecimal totalServicos = somarTotais(servicos);
@@ -211,14 +213,20 @@ public class ProdutoCalculoService {
 
 	private ProdutoCalculoItemResponse calcularComponente(ProdutoComponente componente,
 			Map<String, BigDecimal> medidas, Map<CodigoParametroCalculo, BigDecimal> contribuicoes,
-			Map<UUID, Materia> materiasEscolhidas, String opcaoNome, ProdutoCalculoContext context) {
+			Map<UUID, Materia> materiasEscolhidas, List<String> materiaisEscolhidosNomes, String opcaoNome,
+			ProdutoCalculoContext context) {
 
 		String nome;
 		String unidade;
 		BigDecimal precoUnitario;
 		if (componente.getTipoItem() == TipoItemComponente.MATERIA) {
-			Materia materia = componente.isSlot() ? resolverMateriaDoSlot(componente, materiasEscolhidas)
-					: componente.getMateria();
+			Materia materia;
+			if (componente.isSlot()) {
+				materia = resolverMateriaDoSlot(componente, materiasEscolhidas);
+				materiaisEscolhidosNomes.add(materia.getNome());
+			} else {
+				materia = componente.getMateria();
+			}
 			nome = materia.getNome();
 			unidade = materia.getUnidade().name();
 			precoUnitario = materia.getPreco();

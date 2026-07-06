@@ -47,6 +47,27 @@ class VendaTest {
 	}
 
 	@Test
+	void janelaDeEdicaoValeParaOrcamentoEOsSoNaPrimeiraHora() {
+		Venda orcamentoNovo = new Venda();
+		orcamentoNovo.setDataCriacao(LocalDateTime.now());
+		assertThat(orcamentoNovo.isEditavel()).isTrue();
+
+		Venda osNova = new Venda();
+		osNova.setStatus(StatusVenda.ORDEM_SERVICO);
+		osNova.setDataCriacao(LocalDateTime.now());
+		assertThat(osNova.isEditavel()).isTrue();
+
+		Venda antiga = new Venda();
+		antiga.setDataCriacao(LocalDateTime.now().minusHours(Venda.EDICAO_HORAS + 1));
+		assertThat(antiga.isEditavel()).isFalse();
+
+		Venda cancelada = new Venda();
+		cancelada.setStatus(StatusVenda.CANCELADO);
+		cancelada.setDataCriacao(LocalDateTime.now());
+		assertThat(cancelada.isEditavel()).isFalse();
+	}
+
+	@Test
 	void isVencidoConsideraValidadeEStatus() {
 		Venda vencido = new Venda();
 		vencido.setDataCriacao(LocalDateTime.now().minusDays(Venda.VALIDADE_ORCAMENTO_DIAS + 1));

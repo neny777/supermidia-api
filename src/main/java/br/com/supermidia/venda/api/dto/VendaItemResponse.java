@@ -9,6 +9,9 @@ public class VendaItemResponse {
 	private UUID id;
 	private UUID produtoId;
 	private String produtoNome;
+	private String descricao;
+	// Entrada original (JSON) — usada pelo frontend para pré-preencher a edição.
+	private String entradaJson;
 	private BigDecimal altura;
 	private BigDecimal largura;
 	private BigDecimal quantidade;
@@ -40,6 +43,22 @@ public class VendaItemResponse {
 
 	public void setProdutoNome(String produtoNome) {
 		this.produtoNome = produtoNome;
+	}
+
+	public String getDescricao() {
+		return descricao;
+	}
+
+	public void setDescricao(String descricao) {
+		this.descricao = descricao;
+	}
+
+	public String getEntradaJson() {
+		return entradaJson;
+	}
+
+	public void setEntradaJson(String entradaJson) {
+		this.entradaJson = entradaJson;
 	}
 
 	public BigDecimal getAltura() {

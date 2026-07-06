@@ -91,6 +91,8 @@ class VendaServiceTest {
 		});
 
 		assertThat(venda.getTotal()).isEqualByComparingTo("135.25");
+		// descrição por extenso congelada no snapshot
+		assertThat(item.getDescricao()).isEqualTo("2 × LONA · 100 × 200 cm");
 		verify(vendaRepository).save(venda);
 	}
 
@@ -221,6 +223,68 @@ class VendaServiceTest {
 		verify(produtoCalculoService).calcular(eq(produtoId), captor.capture());
 		assertThat(captor.getValue().getMedidas()).containsEntry("BORDA", new BigDecimal("10"));
 		assertThat(captor.getValue().getEscolhasOpcao()).containsExactly(opcaoId);
+	}
+
+	@Test
+	void excluirDentroDaJanelaApagaAVenda() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setDataCriacao(LocalDateTime.now());
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		vendaService.excluir(vendaId);
+
+		verify(vendaRepository).delete(venda);
+	}
+
+	@Test
+	void excluirForaDaJanelaDeveFalhar() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setDataCriacao(LocalDateTime.now().minusHours(Venda.EDICAO_HORAS + 1));
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.excluir(vendaId))
+				.isInstanceOf(VendaValidationException.class)
+				.hasMessageContaining("janela");
+	}
+
+	@Test
+	void editarDentroDaJanelaSubstituiOsItens() {
+		UUID vendaId = UUID.randomUUID();
+		UUID clienteId = UUID.randomUUID();
+		UUID produtoId = UUID.randomUUID();
+
+		Venda venda = new Venda();
+		venda.setDataCriacao(LocalDateTime.now());
+		venda.setStatus(StatusVenda.ORCAMENTO);
+		ItemVenda itemAntigo = new ItemVenda();
+		itemAntigo.setProdutoNome("ANTIGO");
+		venda.addItem(itemAntigo);
+
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+		when(clienteRepository.findById(clienteId)).thenReturn(Optional.of(cliente(clienteId, Categoria.R)));
+		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "135.25"));
+		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Venda editada = vendaService.editar(vendaId, request(clienteId, produtoId));
+
+		assertThat(editada.getItens()).hasSize(1);
+		assertThat(editada.getItens().get(0).getProdutoNome()).isEqualTo("LONA");
+		assertThat(editada.getTotal()).isEqualByComparingTo("135.25");
+	}
+
+	@Test
+	void editarForaDaJanelaDeveFalhar() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setDataCriacao(LocalDateTime.now().minusHours(Venda.EDICAO_HORAS + 1));
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions
+				.assertThatThrownBy(() -> vendaService.editar(vendaId, request(UUID.randomUUID(), UUID.randomUUID())))
+				.isInstanceOf(VendaValidationException.class)
+				.hasMessageContaining("janela");
 	}
 
 	// --- fixtures ---
