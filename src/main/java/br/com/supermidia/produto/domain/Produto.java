@@ -18,6 +18,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -40,16 +41,20 @@ public class Produto {
 	@Convert(converter = UppercaseConverter.class)
 	private String nome;
 
+	// @OrderBy: ordem ESTÁVEL entre carregamentos — as telas endereçam itens por índice.
 	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	@Fetch(FetchMode.SUBSELECT)
+	@OrderBy("id")
 	private List<ProdutoMedida> medidas = new ArrayList<>();
 
 	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	@Fetch(FetchMode.SUBSELECT)
+	@OrderBy("id")
 	private List<ProdutoComponente> componentes = new ArrayList<>();
 
 	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	@Fetch(FetchMode.SUBSELECT)
+	@OrderBy("id")
 	private List<ProdutoGrupoOpcao> gruposOpcoes = new ArrayList<>();
 
 	@PrePersist

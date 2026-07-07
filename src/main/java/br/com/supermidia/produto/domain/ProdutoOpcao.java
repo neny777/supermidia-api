@@ -18,6 +18,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -45,9 +46,11 @@ public class ProdutoOpcao {
 	private String nome;
 
 	@OneToMany(mappedBy = "opcao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@OrderBy("id")
 	private List<ProdutoComponente> componentes = new ArrayList<>();
 
 	@OneToMany(mappedBy = "opcao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@OrderBy("id")
 	private List<ProdutoOpcaoContribuicao> contribuicoes = new ArrayList<>();
 
 	@PrePersist
