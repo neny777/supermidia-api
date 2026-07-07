@@ -287,6 +287,57 @@ class VendaServiceTest {
 				.hasMessageContaining("janela");
 	}
 
+	@Test
+	void overridePrecoFinalAtualizaOItemEOTotal() {
+		UUID vendaId = UUID.randomUUID();
+		UUID itemId = UUID.randomUUID();
+
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.ORCAMENTO);
+		venda.setDataCriacao(LocalDateTime.now());
+		ItemVenda item = new ItemVenda();
+		item.setId(itemId);
+		item.setPrecoSugerido(new BigDecimal("135.25"));
+		item.setPrecoFinal(new BigDecimal("135.25"));
+		venda.addItem(item);
+
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Venda atualizada = vendaService.overridePrecoFinal(vendaId, itemId, new BigDecimal("120.00"));
+
+		assertThat(atualizada.getItens().get(0).getPrecoFinal()).isEqualByComparingTo("120.00");
+		assertThat(atualizada.getItens().get(0).getPrecoSugerido()).isEqualByComparingTo("135.25"); // sugerido preservado
+		assertThat(atualizada.getTotal()).isEqualByComparingTo("120.00");
+	}
+
+	@Test
+	void overridePrecoFinalDeveFalharEmVendaCancelada() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.CANCELADO);
+		venda.setDataCriacao(LocalDateTime.now());
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions
+				.assertThatThrownBy(() -> vendaService.overridePrecoFinal(vendaId, UUID.randomUUID(), new BigDecimal("10")))
+				.isInstanceOf(VendaValidationException.class);
+	}
+
+	@Test
+	void overridePrecoFinalDeveFalharSeItemNaoPertenceAVenda() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.ORCAMENTO);
+		venda.setDataCriacao(LocalDateTime.now());
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions
+				.assertThatThrownBy(() -> vendaService.overridePrecoFinal(vendaId, UUID.randomUUID(), new BigDecimal("10")))
+				.isInstanceOf(VendaValidationException.class)
+				.hasMessageContaining("Item não encontrado");
+	}
+
 	// --- fixtures ---
 
 	private Cliente cliente(UUID id, Categoria categoria) {

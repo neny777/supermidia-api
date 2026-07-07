@@ -124,6 +124,28 @@ public class VendaService {
 		return vendaRepository.save(venda);
 	}
 
+	/**
+	 * Override do preço final de um item — a única edição manual permitida na
+	 * venda (decisão de 2026-06: quantidades são sempre auto-calculadas).
+	 */
+	@Transactional
+	public Venda overridePrecoFinal(UUID vendaId, UUID itemId, BigDecimal precoFinal) {
+		Venda venda = findById(vendaId);
+		if (venda.getStatus() == StatusVenda.CANCELADO) {
+			throw new VendaValidationException("Venda cancelada não pode ter o preço ajustado.");
+		}
+		if (venda.isVencido()) {
+			throw new VendaValidationException("Orçamento vencido: recalcule antes de ajustar o preço.");
+		}
+		ItemVenda item = venda.getItens().stream()
+				.filter(itemVenda -> itemVenda.getId() != null && itemVenda.getId().equals(itemId))
+				.findFirst()
+				.orElseThrow(() -> new VendaValidationException("Item não encontrado nesta venda."));
+		item.setPrecoFinal(precoFinal);
+		venda.recalcularTotal();
+		return vendaRepository.save(venda);
+	}
+
 	@Transactional
 	public Venda converterParaOrdemServico(UUID id) {
 		Venda venda = findById(id);

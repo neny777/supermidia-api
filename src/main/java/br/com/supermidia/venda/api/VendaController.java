@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.supermidia.security.Permissoes;
 import br.com.supermidia.venda.api.dto.VendaCreateRequest;
+import br.com.supermidia.venda.api.dto.VendaItemPrecoRequest;
 import br.com.supermidia.venda.api.dto.VendaResponse;
 import br.com.supermidia.venda.app.VendaService;
 import br.com.supermidia.venda.domain.StatusVenda;
@@ -63,6 +64,13 @@ public class VendaController {
 	public ResponseEntity<Void> excluir(@PathVariable UUID id) {
 		service.excluir(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PutMapping("/{id}/itens/{itemId}/preco-final")
+	public ResponseEntity<VendaResponse> overridePrecoFinal(@PathVariable UUID id, @PathVariable UUID itemId,
+			@Valid @RequestBody VendaItemPrecoRequest request) {
+		return ResponseEntity
+				.ok(comVisibilidade(mapper.toResponse(service.overridePrecoFinal(id, itemId, request.getPrecoFinal()))));
 	}
 
 	@PostMapping("/{id}/ordem-servico")
