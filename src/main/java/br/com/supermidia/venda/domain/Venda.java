@@ -2,6 +2,7 @@ package br.com.supermidia.venda.domain;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,11 @@ public class Venda {
 	@JdbcTypeCode(SqlTypes.BINARY)
 	@Column(name = "id", columnDefinition = "BINARY(16)")
 	private UUID id;
+
+	// Número humano sequencial ("OS nº 12"), atribuído pelo service na criação.
+	// Vendas antigas (antes do recurso) podem ter nulo.
+	@Column(name = "numero", unique = true)
+	private Long numero;
 
 	// Cliente do documento (define atacado/varejo pela categoria). Anulável por ora;
 	// obrigatoriedade será garantida na camada de aplicação (fatia 2).
@@ -98,6 +104,11 @@ public class Venda {
 				&& dataCriacao != null && dataCriacao.plusHours(EDICAO_HORAS).isAfter(LocalDateTime.now());
 	}
 
+	/** Fim da validade do orçamento (derivado; exibido no impresso). */
+	public LocalDate getValidoAte() {
+		return dataCriacao == null ? null : dataCriacao.plusDays(VALIDADE_ORCAMENTO_DIAS).toLocalDate();
+	}
+
 	/** Orçamento vencido = passou da validade (só se aplica a orçamentos). */
 	public boolean isVencido() {
 		return status == StatusVenda.ORCAMENTO && dataCriacao != null
@@ -146,6 +157,14 @@ public class Venda {
 
 	public void setId(UUID id) {
 		this.id = id;
+	}
+
+	public Long getNumero() {
+		return numero;
+	}
+
+	public void setNumero(Long numero) {
+		this.numero = numero;
 	}
 
 	public Cliente getCliente() {

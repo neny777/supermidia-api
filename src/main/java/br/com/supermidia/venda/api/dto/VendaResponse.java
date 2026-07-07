@@ -1,6 +1,7 @@
 package br.com.supermidia.venda.api.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,11 +11,13 @@ import br.com.supermidia.venda.domain.StatusVenda;
 
 public class VendaResponse {
 	private UUID id;
+	private Long numero;
 	private UUID clienteId;
 	private StatusVenda status;
 	private boolean vencido;
 	private boolean editavel;
 	private LocalDateTime dataCriacao;
+	private LocalDate validoAte;
 	private BigDecimal total;
 	private List<VendaItemResponse> itens = new ArrayList<>();
 
@@ -24,6 +27,22 @@ public class VendaResponse {
 
 	public void setId(UUID id) {
 		this.id = id;
+	}
+
+	public Long getNumero() {
+		return numero;
+	}
+
+	public void setNumero(Long numero) {
+		this.numero = numero;
+	}
+
+	public LocalDate getValidoAte() {
+		return validoAte;
+	}
+
+	public void setValidoAte(LocalDate validoAte) {
+		this.validoAte = validoAte;
 	}
 
 	public UUID getClienteId() {

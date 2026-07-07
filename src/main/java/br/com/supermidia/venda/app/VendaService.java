@@ -59,6 +59,7 @@ public class VendaService {
 		}
 
 		Venda venda = new Venda();
+		venda.setNumero(vendaRepository.proximoNumero());
 		venda.setCliente(cliente);
 		venda.setStatus(statusInicial);
 

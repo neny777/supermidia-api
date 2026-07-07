@@ -63,8 +63,11 @@ class VendaServiceTest {
 		UUID produtoId = UUID.randomUUID();
 		when(produtoCalculoService.calcular(eq(produtoId), any())).thenReturn(calculoLona(produtoId, "135.25"));
 		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(vendaRepository.proximoNumero()).thenReturn(7L);
 
 		Venda venda = vendaService.criar(request(clienteId, produtoId));
+
+		assertThat(venda.getNumero()).isEqualTo(7L); // número humano sequencial
 
 		// a categoria do cliente foi repassada ao motor
 		ArgumentCaptor<ProdutoCalculoRequest> captor = ArgumentCaptor.forClass(ProdutoCalculoRequest.class);
