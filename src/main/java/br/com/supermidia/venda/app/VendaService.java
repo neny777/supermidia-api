@@ -19,6 +19,7 @@ import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
 import br.com.supermidia.produto.app.ProdutoCalculoService;
+import br.com.supermidia.venda.api.dto.VendaCabecalhoRequest;
 import br.com.supermidia.venda.api.dto.VendaCreateRequest;
 import br.com.supermidia.venda.api.dto.VendaItemRequest;
 import br.com.supermidia.venda.domain.ItemVenda;
@@ -62,6 +63,7 @@ public class VendaService {
 		venda.setNumero(vendaRepository.proximoNumero());
 		venda.setCliente(cliente);
 		venda.setStatus(statusInicial);
+		aplicarCabecalho(venda, request.getFormaPagamento(), request.getPrazoEntrega(), request.getObservacoes());
 
 		for (VendaItemRequest itemRequest : request.getItens()) {
 			venda.addItem(congelarItem(itemRequest, cliente.getCategoria()));
@@ -115,6 +117,7 @@ public class VendaService {
 
 		venda.setCliente(cliente);
 		venda.setStatus(status);
+		aplicarCabecalho(venda, request.getFormaPagamento(), request.getPrazoEntrega(), request.getObservacoes());
 		List<ItemVenda> itens = new ArrayList<>();
 		for (VendaItemRequest itemRequest : request.getItens()) {
 			itens.add(congelarItem(itemRequest, cliente.getCategoria()));
@@ -123,6 +126,30 @@ public class VendaService {
 		venda.renovarValidade(); // conteúdo novo = contagens novas (validade e janela)
 		venda.recalcularTotal();
 		return vendaRepository.save(venda);
+	}
+
+	/**
+	 * Condições da venda (pagamento/prazo/observações): não afetam preço, por
+	 * isso podem ser alteradas fora da janela de 1h — só venda cancelada trava.
+	 */
+	@Transactional
+	public Venda atualizarCabecalho(UUID id, VendaCabecalhoRequest request) {
+		Venda venda = findById(id);
+		if (venda.getStatus() == StatusVenda.CANCELADO) {
+			throw new VendaValidationException("Venda cancelada não pode ser alterada.");
+		}
+		aplicarCabecalho(venda, request.getFormaPagamento(), request.getPrazoEntrega(), request.getObservacoes());
+		return vendaRepository.save(venda);
+	}
+
+	private void aplicarCabecalho(Venda venda, String formaPagamento, String prazoEntrega, String observacoes) {
+		venda.setFormaPagamento(limpar(formaPagamento));
+		venda.setPrazoEntrega(limpar(prazoEntrega));
+		venda.setObservacoes(limpar(observacoes));
+	}
+
+	private String limpar(String texto) {
+		return texto == null || texto.isBlank() ? null : texto.trim();
 	}
 
 	/**

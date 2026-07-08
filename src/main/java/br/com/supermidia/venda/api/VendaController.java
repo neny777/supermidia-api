@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.supermidia.security.Permissoes;
+import br.com.supermidia.venda.api.dto.VendaCabecalhoRequest;
 import br.com.supermidia.venda.api.dto.VendaCreateRequest;
 import br.com.supermidia.venda.api.dto.VendaItemPrecoRequest;
 import br.com.supermidia.venda.api.dto.VendaResponse;
@@ -64,6 +65,12 @@ public class VendaController {
 	public ResponseEntity<Void> excluir(@PathVariable UUID id) {
 		service.excluir(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PutMapping("/{id}/cabecalho")
+	public ResponseEntity<VendaResponse> atualizarCabecalho(@PathVariable UUID id,
+			@Valid @RequestBody VendaCabecalhoRequest request) {
+		return ResponseEntity.ok(comVisibilidade(mapper.toResponse(service.atualizarCabecalho(id, request))));
 	}
 
 	@PutMapping("/{id}/itens/{itemId}/preco-final")

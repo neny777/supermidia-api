@@ -72,6 +72,17 @@ public class Venda {
 	@Column(name = "total", precision = 12, scale = 2)
 	private BigDecimal total;
 
+	// Condições combinadas com o cliente (texto livre; saem no impresso).
+	// Não afetam preço, por isso são editáveis fora da janela de 1h.
+	@Column(name = "forma_pagamento", length = 120)
+	private String formaPagamento;
+
+	@Column(name = "prazo_entrega", length = 60)
+	private String prazoEntrega;
+
+	@Column(name = "observacoes", length = 1000)
+	private String observacoes;
+
 	@PrePersist
 	public void prePersist() {
 		if (this.id == null) {
@@ -201,6 +212,30 @@ public class Venda {
 
 	public void setTotal(BigDecimal total) {
 		this.total = total;
+	}
+
+	public String getFormaPagamento() {
+		return formaPagamento;
+	}
+
+	public void setFormaPagamento(String formaPagamento) {
+		this.formaPagamento = formaPagamento;
+	}
+
+	public String getPrazoEntrega() {
+		return prazoEntrega;
+	}
+
+	public void setPrazoEntrega(String prazoEntrega) {
+		this.prazoEntrega = prazoEntrega;
+	}
+
+	public String getObservacoes() {
+		return observacoes;
+	}
+
+	public void setObservacoes(String observacoes) {
+		this.observacoes = observacoes;
 	}
 
 	@Override

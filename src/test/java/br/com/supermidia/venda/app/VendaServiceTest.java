@@ -30,6 +30,7 @@ import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
 import br.com.supermidia.produto.app.ProdutoCalculoService;
+import br.com.supermidia.venda.api.dto.VendaCabecalhoRequest;
 import br.com.supermidia.venda.api.dto.VendaCreateRequest;
 import br.com.supermidia.venda.api.dto.VendaItemRequest;
 import br.com.supermidia.venda.domain.ItemVenda;
@@ -339,6 +340,39 @@ class VendaServiceTest {
 				.assertThatThrownBy(() -> vendaService.overridePrecoFinal(vendaId, UUID.randomUUID(), new BigDecimal("10")))
 				.isInstanceOf(VendaValidationException.class)
 				.hasMessageContaining("Item não encontrado");
+	}
+
+	@Test
+	void atualizarCabecalhoGravaCondicoesLimpandoBrancos() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.ORDEM_SERVICO);
+		venda.setDataCriacao(LocalDateTime.now());
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		VendaCabecalhoRequest request = new VendaCabecalhoRequest();
+		request.setFormaPagamento("  50% entrada + 50% na entrega  ");
+		request.setPrazoEntrega("5 dias úteis");
+		request.setObservacoes("   "); // em branco vira nulo
+
+		Venda atualizada = vendaService.atualizarCabecalho(vendaId, request);
+
+		assertThat(atualizada.getFormaPagamento()).isEqualTo("50% entrada + 50% na entrega");
+		assertThat(atualizada.getPrazoEntrega()).isEqualTo("5 dias úteis");
+		assertThat(atualizada.getObservacoes()).isNull();
+	}
+
+	@Test
+	void atualizarCabecalhoDeveFalharEmVendaCancelada() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.CANCELADO);
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions
+				.assertThatThrownBy(() -> vendaService.atualizarCabecalho(vendaId, new VendaCabecalhoRequest()))
+				.isInstanceOf(VendaValidationException.class);
 	}
 
 	// --- fixtures ---

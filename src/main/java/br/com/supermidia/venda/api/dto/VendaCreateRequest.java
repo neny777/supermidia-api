@@ -8,6 +8,7 @@ import br.com.supermidia.venda.domain.StatusVenda;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class VendaCreateRequest {
 
@@ -16,6 +17,16 @@ public class VendaCreateRequest {
 
 	// Opcional: ORCAMENTO (default) ou ORDEM_SERVICO (venda direta, sem orçar).
 	private StatusVenda status;
+
+	// Condições (opcionais; também editáveis depois via PUT /{id}/cabecalho).
+	@Size(max = 120, message = "Forma de pagamento: máximo 120 caracteres.")
+	private String formaPagamento;
+
+	@Size(max = 60, message = "Prazo de entrega: máximo 60 caracteres.")
+	private String prazoEntrega;
+
+	@Size(max = 1000, message = "Observações: máximo 1000 caracteres.")
+	private String observacoes;
 
 	@Valid
 	@NotEmpty(message = "Informe ao menos um item.")
@@ -35,6 +46,30 @@ public class VendaCreateRequest {
 
 	public void setStatus(StatusVenda status) {
 		this.status = status;
+	}
+
+	public String getFormaPagamento() {
+		return formaPagamento;
+	}
+
+	public void setFormaPagamento(String formaPagamento) {
+		this.formaPagamento = formaPagamento;
+	}
+
+	public String getPrazoEntrega() {
+		return prazoEntrega;
+	}
+
+	public void setPrazoEntrega(String prazoEntrega) {
+		this.prazoEntrega = prazoEntrega;
+	}
+
+	public String getObservacoes() {
+		return observacoes;
+	}
+
+	public void setObservacoes(String observacoes) {
+		this.observacoes = observacoes;
 	}
 
 	public List<VendaItemRequest> getItens() {

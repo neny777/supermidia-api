@@ -19,6 +19,9 @@ public class VendaResponse {
 	private LocalDateTime dataCriacao;
 	private LocalDate validoAte;
 	private BigDecimal total;
+	private String formaPagamento;
+	private String prazoEntrega;
+	private String observacoes;
 	private List<VendaItemResponse> itens = new ArrayList<>();
 
 	public UUID getId() {
@@ -91,6 +94,30 @@ public class VendaResponse {
 
 	public void setTotal(BigDecimal total) {
 		this.total = total;
+	}
+
+	public String getFormaPagamento() {
+		return formaPagamento;
+	}
+
+	public void setFormaPagamento(String formaPagamento) {
+		this.formaPagamento = formaPagamento;
+	}
+
+	public String getPrazoEntrega() {
+		return prazoEntrega;
+	}
+
+	public void setPrazoEntrega(String prazoEntrega) {
+		this.prazoEntrega = prazoEntrega;
+	}
+
+	public String getObservacoes() {
+		return observacoes;
+	}
+
+	public void setObservacoes(String observacoes) {
+		this.observacoes = observacoes;
 	}
 
 	public List<VendaItemResponse> getItens() {
