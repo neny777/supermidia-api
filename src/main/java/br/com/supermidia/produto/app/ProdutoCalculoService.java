@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.supermidia.calculo.domain.BaseOperacionalCalculo;
 import br.com.supermidia.calculo.domain.CodigoParametroCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
+import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.materia.domain.Materia;
 import br.com.supermidia.materia.infra.MateriaRepository;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
@@ -41,9 +42,7 @@ public class ProdutoCalculoService {
 	private static final BigDecimal DEZ_MIL = new BigDecimal("10000");
 	private static final int SCALE_QUANTIDADE = 4;
 	private static final int SCALE_VALOR = 2;
-	// Constantes de margem (futuramente uma configuração global do sistema).
-	private static final BigDecimal PISO_MARGEM = new BigDecimal("0.35");
-	private static final BigDecimal FATOR_VAREJO = new BigDecimal("1.3846");
+	// Piso de margem e fator de varejo vêm da configuração global (tela Configurações).
 
 	private final ProdutoService produtoService;
 	private final MateriaRepository materiaRepository;
@@ -298,13 +297,14 @@ public class ProdutoCalculoService {
 	 */
 	private void aplicarPrecificacao(ProdutoCalculoResponse response, BigDecimal baseMateriais,
 			BigDecimal baseServicos, BigDecimal custoTotal, Categoria categoria) {
+		BigDecimal fatorVarejo = ConfiguracaoGlobal.getFatorVarejo();
 		BigDecimal margemAtacado = calcularMargemAtacado(baseMateriais, baseServicos);
 		BigDecimal precoAtacado = custoTotal.multiply(BigDecimal.ONE.add(margemAtacado))
 				.setScale(SCALE_VALOR, RoundingMode.HALF_UP);
-		BigDecimal precoVarejo = precoAtacado.multiply(FATOR_VAREJO).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
+		BigDecimal precoVarejo = precoAtacado.multiply(fatorVarejo).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
 
 		BigDecimal markupAtacado = margemAtacado.multiply(CEM).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
-		BigDecimal markupVarejo = BigDecimal.ONE.add(margemAtacado).multiply(FATOR_VAREJO).subtract(BigDecimal.ONE)
+		BigDecimal markupVarejo = BigDecimal.ONE.add(margemAtacado).multiply(fatorVarejo).subtract(BigDecimal.ONE)
 				.multiply(CEM).setScale(SCALE_VALOR, RoundingMode.HALF_UP);
 
 		response.setMarkupAtacado(markupAtacado);
@@ -318,11 +318,12 @@ public class ProdutoCalculoService {
 	}
 
 	private BigDecimal calcularMargemAtacado(BigDecimal custoMateriais, BigDecimal custoServicos) {
+		BigDecimal pisoMargem = ConfiguracaoGlobal.getPisoMargem();
 		if (custoMateriais.signum() <= 0) {
-			return PISO_MARGEM; // sem material não há razão a calcular: aplica o piso
+			return pisoMargem; // sem material não há razão a calcular: aplica o piso
 		}
 		BigDecimal razao = custoServicos.divide(custoMateriais, 10, RoundingMode.HALF_UP);
-		return BigDecimal.ONE.subtract(razao).max(PISO_MARGEM);
+		return BigDecimal.ONE.subtract(razao).max(pisoMargem);
 	}
 
 	private BigDecimal somarTotais(List<ProdutoCalculoItemResponse> itens) {

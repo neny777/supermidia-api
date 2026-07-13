@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
@@ -95,7 +96,8 @@ public class VendaService {
 		Venda venda = findById(id);
 		if (!venda.isEditavel()) {
 			throw new VendaValidationException(
-					"A janela de exclusão (" + Venda.EDICAO_HORAS + "h) expirou ou o status não permite — use o cancelamento.");
+					"A janela de exclusão (" + ConfiguracaoGlobal.getEdicaoHoras()
+							+ "h) expirou ou o status não permite — use o cancelamento.");
 		}
 		vendaRepository.delete(venda);
 	}
@@ -106,7 +108,7 @@ public class VendaService {
 		Venda venda = findById(id);
 		if (!venda.isEditavel()) {
 			throw new VendaValidationException(
-					"A janela de edição (" + Venda.EDICAO_HORAS + "h) expirou ou o status não permite.");
+					"A janela de edição (" + ConfiguracaoGlobal.getEdicaoHoras() + "h) expirou ou o status não permite.");
 		}
 		Cliente cliente = clienteRepository.findById(request.getClienteId())
 				.orElseThrow(() -> new VendaValidationException("Cliente não encontrado: " + request.getClienteId()));

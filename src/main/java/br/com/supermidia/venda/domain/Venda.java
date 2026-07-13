@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -35,12 +36,6 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "vendas")
 public class Venda {
-
-	/** Validade padrão do orçamento em dias (futuro: configuração global do sistema). */
-	public static final int VALIDADE_ORCAMENTO_DIAS = 15;
-
-	/** Janela de edição/exclusão após a criação, em horas (futuro: configuração global). */
-	public static final int EDICAO_HORAS = 1;
 
 	@Id
 	@JdbcTypeCode(SqlTypes.BINARY)
@@ -112,18 +107,20 @@ public class Venda {
 	 */
 	public boolean isEditavel() {
 		return (status == StatusVenda.ORCAMENTO || status == StatusVenda.ORDEM_SERVICO)
-				&& dataCriacao != null && dataCriacao.plusHours(EDICAO_HORAS).isAfter(LocalDateTime.now());
+				&& dataCriacao != null
+				&& dataCriacao.plusHours(ConfiguracaoGlobal.getEdicaoHoras()).isAfter(LocalDateTime.now());
 	}
 
 	/** Fim da validade do orçamento (derivado; exibido no impresso). */
 	public LocalDate getValidoAte() {
-		return dataCriacao == null ? null : dataCriacao.plusDays(VALIDADE_ORCAMENTO_DIAS).toLocalDate();
+		return dataCriacao == null ? null
+				: dataCriacao.plusDays(ConfiguracaoGlobal.getValidadeOrcamentoDias()).toLocalDate();
 	}
 
 	/** Orçamento vencido = passou da validade (só se aplica a orçamentos). */
 	public boolean isVencido() {
 		return status == StatusVenda.ORCAMENTO && dataCriacao != null
-				&& dataCriacao.plusDays(VALIDADE_ORCAMENTO_DIAS).isBefore(LocalDateTime.now());
+				&& dataCriacao.plusDays(ConfiguracaoGlobal.getValidadeOrcamentoDias()).isBefore(LocalDateTime.now());
 	}
 
 	/** Converte o orçamento em ordem de serviço. */

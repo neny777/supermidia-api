@@ -19,10 +19,12 @@ public final class Permissoes {
 	public static final String VENDAS = "vendas";
 	// Ver custos, margens e detalhamento das vendas (informação sensível).
 	public static final String CUSTOS = "custos";
+	// Alterar os parâmetros globais do sistema (validade, janela de edição, margens).
+	public static final String CONFIGURACOES = "configuracoes";
 	public static final String USUARIOS = "usuarios";
 
 	public static final Set<String> TODAS = Set.of(CLIENTES, COLABORADORES, FORNECEDORES, PARCEIROS, GRUPOS,
-			MATERIAS, SERVICOS, PRODUTOS, VENDAS, CUSTOS, USUARIOS);
+			MATERIAS, SERVICOS, PRODUTOS, VENDAS, CUSTOS, CONFIGURACOES, USUARIOS);
 
 	private Permissoes() {
 	}

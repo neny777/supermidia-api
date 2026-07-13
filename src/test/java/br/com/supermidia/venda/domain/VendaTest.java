@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 
+import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
+
 class VendaTest {
 
 	@Test
@@ -22,7 +24,7 @@ class VendaTest {
 	@Test
 	void naoDeveConverterOrcamentoVencido() {
 		Venda venda = new Venda();
-		venda.setDataCriacao(LocalDateTime.now().minusDays(Venda.VALIDADE_ORCAMENTO_DIAS + 1));
+		venda.setDataCriacao(LocalDateTime.now().minusDays(ConfiguracaoGlobal.getValidadeOrcamentoDias() + 1));
 
 		assertThatThrownBy(venda::converterParaOrdemServico)
 				.isInstanceOf(IllegalStateException.class)
@@ -58,7 +60,7 @@ class VendaTest {
 		assertThat(osNova.isEditavel()).isTrue();
 
 		Venda antiga = new Venda();
-		antiga.setDataCriacao(LocalDateTime.now().minusHours(Venda.EDICAO_HORAS + 1));
+		antiga.setDataCriacao(LocalDateTime.now().minusHours(ConfiguracaoGlobal.getEdicaoHoras() + 1));
 		assertThat(antiga.isEditavel()).isFalse();
 
 		Venda cancelada = new Venda();
@@ -70,11 +72,11 @@ class VendaTest {
 	@Test
 	void isVencidoConsideraValidadeEStatus() {
 		Venda vencido = new Venda();
-		vencido.setDataCriacao(LocalDateTime.now().minusDays(Venda.VALIDADE_ORCAMENTO_DIAS + 1));
+		vencido.setDataCriacao(LocalDateTime.now().minusDays(ConfiguracaoGlobal.getValidadeOrcamentoDias() + 1));
 		assertThat(vencido.isVencido()).isTrue();
 
 		Venda dentroDoPrazo = new Venda();
-		dentroDoPrazo.setDataCriacao(LocalDateTime.now().minusDays(Venda.VALIDADE_ORCAMENTO_DIAS - 1));
+		dentroDoPrazo.setDataCriacao(LocalDateTime.now().minusDays(ConfiguracaoGlobal.getValidadeOrcamentoDias() - 1));
 		assertThat(dentroDoPrazo.isVencido()).isFalse();
 
 		// validade só se aplica a orçamentos; uma OS antiga não está "vencida"

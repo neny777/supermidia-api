@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.com.supermidia.calculo.domain.BaseOperacionalCalculo;
 import br.com.supermidia.calculo.domain.TipoCalculo;
+import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
@@ -245,7 +246,7 @@ class VendaServiceTest {
 	void excluirForaDaJanelaDeveFalhar() {
 		UUID vendaId = UUID.randomUUID();
 		Venda venda = new Venda();
-		venda.setDataCriacao(LocalDateTime.now().minusHours(Venda.EDICAO_HORAS + 1));
+		venda.setDataCriacao(LocalDateTime.now().minusHours(ConfiguracaoGlobal.getEdicaoHoras() + 1));
 		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
 
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.excluir(vendaId))
@@ -282,7 +283,7 @@ class VendaServiceTest {
 	void editarForaDaJanelaDeveFalhar() {
 		UUID vendaId = UUID.randomUUID();
 		Venda venda = new Venda();
-		venda.setDataCriacao(LocalDateTime.now().minusHours(Venda.EDICAO_HORAS + 1));
+		venda.setDataCriacao(LocalDateTime.now().minusHours(ConfiguracaoGlobal.getEdicaoHoras() + 1));
 		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
 
 		org.assertj.core.api.Assertions

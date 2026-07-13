@@ -69,6 +69,7 @@ public class SecurityConfiguration {
 				.requestMatchers("/api/calculos/**").hasRole(Permissoes.PRODUTOS)
 				.requestMatchers("/api/produtos/**").hasRole(Permissoes.PRODUTOS)
 				.requestMatchers("/api/vendas/**").hasRole(Permissoes.VENDAS)
+				.requestMatchers("/api/configuracoes/**").hasRole(Permissoes.CONFIGURACOES)
 				// Qualquer endpoint de API sem regra específica exige autenticação.
 				.requestMatchers("/api/**").authenticated()
 				// O restante é o frontend (arquivos estáticos + rotas da SPA).
