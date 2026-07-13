@@ -20,7 +20,24 @@ echo "== 4/5 montando o pacote =="
 rm -rf "$OUT" && mkdir -p "$OUT"
 cp "$API"/target/supermidia-*.jar "$OUT/supermidia.jar"
 JWT=$(openssl rand -base64 32)
-sed "s|__JWT_SECRET__|$JWT|" "$API/deploy/start-supermidia.bat" | sed 's/$/\r/' > "$OUT/start-supermidia.bat"
+
+# SMTP da recuperação de senha: vem de deploy/mail.env (fora do git).
+if [ -f "$API/deploy/mail.env" ]; then
+  # shellcheck disable=SC1091
+  . "$API/deploy/mail.env"
+else
+  echo "   AVISO: deploy/mail.env não encontrado — recuperação de senha por e-mail"
+  echo "   NÃO funcionará no destino até preencher as variáveis MAIL_* no .bat."
+  MAIL_HOST="nao-configurado"; MAIL_PORT="465"
+  MAIL_USERNAME="nao-configurado"; MAIL_PASSWORD="nao-configurado"
+fi
+
+sed -e "s|__JWT_SECRET__|$JWT|" \
+    -e "s|__MAIL_HOST__|${MAIL_HOST//&/\\&}|" \
+    -e "s|__MAIL_PORT__|${MAIL_PORT//&/\\&}|" \
+    -e "s|__MAIL_USERNAME__|${MAIL_USERNAME//&/\\&}|" \
+    -e "s|__MAIL_PASSWORD__|${MAIL_PASSWORD//&/\\&}|" \
+    "$API/deploy/start-supermidia.bat" | sed 's/$/\r/' > "$OUT/start-supermidia.bat"
 [ -f "$API/docs/deploy-windows.pdf" ] && cp "$API/docs/deploy-windows.pdf" "$OUT/LEIA-ME.pdf"
 
 echo "== 5/5 exportando o banco (se o MySQL local estiver no ar) =="

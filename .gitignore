@@ -11,6 +11,9 @@ target/
 
 # Frontend compilado embutido no build de deploy (gerado por deploy/build-pacote.sh)
 src/main/resources/static/
+
+# Credenciais SMTP locais usadas pelo empacotador (NUNCA versionar)
+deploy/mail.env
 .classpath
 .factorypath
 .project
