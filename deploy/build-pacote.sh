@@ -39,6 +39,7 @@ sed -e "s|__JWT_SECRET__|$JWT|" \
     -e "s|__MAIL_PASSWORD__|${MAIL_PASSWORD//&/\\&}|" \
     "$API/deploy/start-supermidia.bat" | sed 's/$/\r/' > "$OUT/start-supermidia.bat"
 [ -f "$API/docs/deploy-windows.pdf" ] && cp "$API/docs/deploy-windows.pdf" "$OUT/LEIA-ME.pdf"
+cp "$API/deploy/supermidia.ico" "$OUT/supermidia.ico" # ícone p/ atalho do .bat no Windows
 
 echo "== 5/5 exportando o banco (se o MySQL local estiver no ar) =="
 if mysqldump --single-transaction -u root -proot --databases supermidia > "$OUT/supermidia-dump.sql" 2>/dev/null; then
