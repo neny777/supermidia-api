@@ -19,6 +19,7 @@ public class VendaResponse {
 	private LocalDateTime dataCriacao;
 	private LocalDate validoAte;
 	private BigDecimal total;
+	private String referencia;
 	private String formaPagamento;
 	private String prazoEntrega;
 	private String observacoes;
@@ -94,6 +95,14 @@ public class VendaResponse {
 
 	public void setTotal(BigDecimal total) {
 		this.total = total;
+	}
+
+	public String getReferencia() {
+		return referencia;
+	}
+
+	public void setReferencia(String referencia) {
+		this.referencia = referencia;
 	}
 
 	public String getFormaPagamento() {

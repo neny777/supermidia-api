@@ -18,6 +18,10 @@ public class VendaCreateRequest {
 	// Opcional: ORCAMENTO (default) ou ORDEM_SERVICO (venda direta, sem orçar).
 	private StatusVenda status;
 
+	// Referência/apelido do trabalho (opcional; diferencia pedidos do mesmo cliente).
+	@Size(max = 120, message = "Referência: máximo 120 caracteres.")
+	private String referencia;
+
 	// Condições (opcionais; também editáveis depois via PUT /{id}/cabecalho).
 	@Size(max = 120, message = "Forma de pagamento: máximo 120 caracteres.")
 	private String formaPagamento;
@@ -46,6 +50,14 @@ public class VendaCreateRequest {
 
 	public void setStatus(StatusVenda status) {
 		this.status = status;
+	}
+
+	public String getReferencia() {
+		return referencia;
+	}
+
+	public void setReferencia(String referencia) {
+		this.referencia = referencia;
 	}
 
 	public String getFormaPagamento() {

@@ -353,12 +353,14 @@ class VendaServiceTest {
 		when(vendaRepository.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		VendaCabecalhoRequest request = new VendaCabecalhoRequest();
+		request.setReferencia("  Fachada Loja Centro  ");
 		request.setFormaPagamento("  50% entrada + 50% na entrega  ");
 		request.setPrazoEntrega("5 dias úteis");
 		request.setObservacoes("   "); // em branco vira nulo
 
 		Venda atualizada = vendaService.atualizarCabecalho(vendaId, request);
 
+		assertThat(atualizada.getReferencia()).isEqualTo("Fachada Loja Centro");
 		assertThat(atualizada.getFormaPagamento()).isEqualTo("50% entrada + 50% na entrega");
 		assertThat(atualizada.getPrazoEntrega()).isEqualTo("5 dias úteis");
 		assertThat(atualizada.getObservacoes()).isNull();

@@ -2,8 +2,11 @@ package br.com.supermidia.venda.api.dto;
 
 import jakarta.validation.constraints.Size;
 
-/** Condições da venda (texto livre) — editáveis fora da janela de 1h. */
+/** Referência e condições da venda (texto livre) — editáveis fora da janela de 1h. */
 public class VendaCabecalhoRequest {
+
+	@Size(max = 120, message = "Referência: máximo 120 caracteres.")
+	private String referencia;
 
 	@Size(max = 120, message = "Forma de pagamento: máximo 120 caracteres.")
 	private String formaPagamento;
@@ -13,6 +16,14 @@ public class VendaCabecalhoRequest {
 
 	@Size(max = 1000, message = "Observações: máximo 1000 caracteres.")
 	private String observacoes;
+
+	public String getReferencia() {
+		return referencia;
+	}
+
+	public void setReferencia(String referencia) {
+		this.referencia = referencia;
+	}
 
 	public String getFormaPagamento() {
 		return formaPagamento;

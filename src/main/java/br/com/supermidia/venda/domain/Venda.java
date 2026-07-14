@@ -67,6 +67,11 @@ public class Venda {
 	@Column(name = "total", precision = 12, scale = 2)
 	private BigDecimal total;
 
+	// Apelido do trabalho ("fachada loja centro") — diferencia pedidos do mesmo
+	// cliente nas listas, buscas e no impresso. Livre e opcional.
+	@Column(name = "referencia", length = 120)
+	private String referencia;
+
 	// Condições combinadas com o cliente (texto livre; saem no impresso).
 	// Não afetam preço, por isso são editáveis fora da janela de 1h.
 	@Column(name = "forma_pagamento", length = 120)
@@ -209,6 +214,14 @@ public class Venda {
 
 	public void setTotal(BigDecimal total) {
 		this.total = total;
+	}
+
+	public String getReferencia() {
+		return referencia;
+	}
+
+	public void setReferencia(String referencia) {
+		this.referencia = referencia;
 	}
 
 	public String getFormaPagamento() {
