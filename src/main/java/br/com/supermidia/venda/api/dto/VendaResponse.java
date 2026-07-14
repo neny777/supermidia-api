@@ -17,6 +17,7 @@ public class VendaResponse {
 	private boolean vencido;
 	private boolean editavel;
 	private LocalDateTime dataCriacao;
+	private LocalDateTime editavelAte;
 	private LocalDate validoAte;
 	private BigDecimal total;
 	private String referencia;
@@ -39,6 +40,14 @@ public class VendaResponse {
 
 	public void setNumero(Long numero) {
 		this.numero = numero;
+	}
+
+	public LocalDateTime getEditavelAte() {
+		return editavelAte;
+	}
+
+	public void setEditavelAte(LocalDateTime editavelAte) {
+		this.editavelAte = editavelAte;
 	}
 
 	public LocalDate getValidoAte() {

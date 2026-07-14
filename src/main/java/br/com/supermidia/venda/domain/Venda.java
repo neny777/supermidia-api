@@ -116,6 +116,11 @@ public class Venda {
 				&& dataCriacao.plusHours(ConfiguracaoGlobal.getEdicaoHoras()).isAfter(LocalDateTime.now());
 	}
 
+	/** Fim da janela de edição/exclusão (derivado; exibido na tela de detalhe). */
+	public LocalDateTime getEditavelAte() {
+		return dataCriacao == null ? null : dataCriacao.plusHours(ConfiguracaoGlobal.getEdicaoHoras());
+	}
+
 	/** Fim da validade do orçamento (derivado; exibido no impresso). */
 	public LocalDate getValidoAte() {
 		return dataCriacao == null ? null
