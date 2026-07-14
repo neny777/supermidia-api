@@ -81,6 +81,10 @@ public class Venda {
 	@Column(name = "forma_pagamento", length = 120)
 	private String formaPagamento;
 
+	// Transporte combinado: retirada na loja, entrega, instalação, transportadora...
+	@Column(name = "forma_entrega", length = 120)
+	private String formaEntrega;
+
 	@Column(name = "prazo_entrega", length = 60)
 	private String prazoEntrega;
 
@@ -247,6 +251,14 @@ public class Venda {
 
 	public void setFormaPagamento(String formaPagamento) {
 		this.formaPagamento = formaPagamento;
+	}
+
+	public String getFormaEntrega() {
+		return formaEntrega;
+	}
+
+	public void setFormaEntrega(String formaEntrega) {
+		this.formaEntrega = formaEntrega;
 	}
 
 	public String getPrazoEntrega() {

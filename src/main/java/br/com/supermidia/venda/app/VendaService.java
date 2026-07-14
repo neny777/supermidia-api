@@ -68,7 +68,8 @@ public class VendaService {
 		venda.setAtendenteNome(nomeAtendenteLogado());
 		venda.setCliente(cliente);
 		venda.setStatus(statusInicial);
-		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getPrazoEntrega(),
+		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getFormaEntrega(),
+				request.getPrazoEntrega(),
 				request.getObservacoes());
 
 		for (VendaItemRequest itemRequest : request.getItens()) {
@@ -124,7 +125,8 @@ public class VendaService {
 
 		venda.setCliente(cliente);
 		venda.setStatus(status);
-		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getPrazoEntrega(),
+		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getFormaEntrega(),
+				request.getPrazoEntrega(),
 				request.getObservacoes());
 		List<ItemVenda> itens = new ArrayList<>();
 		for (VendaItemRequest itemRequest : request.getItens()) {
@@ -146,15 +148,17 @@ public class VendaService {
 		if (venda.getStatus() == StatusVenda.CANCELADO) {
 			throw new VendaValidationException("Venda cancelada não pode ser alterada.");
 		}
-		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getPrazoEntrega(),
+		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getFormaEntrega(),
+				request.getPrazoEntrega(),
 				request.getObservacoes());
 		return vendaRepository.save(venda);
 	}
 
-	private void aplicarCabecalho(Venda venda, String referencia, String formaPagamento, String prazoEntrega,
-			String observacoes) {
+	private void aplicarCabecalho(Venda venda, String referencia, String formaPagamento, String formaEntrega,
+			String prazoEntrega, String observacoes) {
 		venda.setReferencia(limpar(referencia));
 		venda.setFormaPagamento(limpar(formaPagamento));
+		venda.setFormaEntrega(limpar(formaEntrega));
 		venda.setPrazoEntrega(limpar(prazoEntrega));
 		venda.setObservacoes(limpar(observacoes));
 	}

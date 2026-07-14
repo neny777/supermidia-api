@@ -23,6 +23,7 @@ public class VendaResponse {
 	private String referencia;
 	private String atendenteNome;
 	private String formaPagamento;
+	private String formaEntrega;
 	private String prazoEntrega;
 	private String observacoes;
 	private List<VendaItemResponse> itens = new ArrayList<>();
@@ -129,6 +130,14 @@ public class VendaResponse {
 
 	public void setFormaPagamento(String formaPagamento) {
 		this.formaPagamento = formaPagamento;
+	}
+
+	public String getFormaEntrega() {
+		return formaEntrega;
+	}
+
+	public void setFormaEntrega(String formaEntrega) {
+		this.formaEntrega = formaEntrega;
 	}
 
 	public String getPrazoEntrega() {
