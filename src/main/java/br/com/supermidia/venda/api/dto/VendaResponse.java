@@ -23,6 +23,7 @@ public class VendaResponse {
 	private String referencia;
 	private String atendenteNome;
 	private String formaPagamento;
+	private String condicaoPagamento;
 	private String formaEntrega;
 	private String prazoEntrega;
 	private String observacoes;
@@ -130,6 +131,14 @@ public class VendaResponse {
 
 	public void setFormaPagamento(String formaPagamento) {
 		this.formaPagamento = formaPagamento;
+	}
+
+	public String getCondicaoPagamento() {
+		return condicaoPagamento;
+	}
+
+	public void setCondicaoPagamento(String condicaoPagamento) {
+		this.condicaoPagamento = condicaoPagamento;
 	}
 
 	public String getFormaEntrega() {

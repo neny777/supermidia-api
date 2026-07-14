@@ -68,9 +68,7 @@ public class VendaService {
 		venda.setAtendenteNome(nomeAtendenteLogado());
 		venda.setCliente(cliente);
 		venda.setStatus(statusInicial);
-		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getFormaEntrega(),
-				request.getPrazoEntrega(),
-				request.getObservacoes());
+		aplicarCabecalho(venda, cabecalhoDe(request));
 
 		for (VendaItemRequest itemRequest : request.getItens()) {
 			venda.addItem(congelarItem(itemRequest, cliente.getCategoria()));
@@ -125,9 +123,7 @@ public class VendaService {
 
 		venda.setCliente(cliente);
 		venda.setStatus(status);
-		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getFormaEntrega(),
-				request.getPrazoEntrega(),
-				request.getObservacoes());
+		aplicarCabecalho(venda, cabecalhoDe(request));
 		List<ItemVenda> itens = new ArrayList<>();
 		for (VendaItemRequest itemRequest : request.getItens()) {
 			itens.add(congelarItem(itemRequest, cliente.getCategoria()));
@@ -148,19 +144,28 @@ public class VendaService {
 		if (venda.getStatus() == StatusVenda.CANCELADO) {
 			throw new VendaValidationException("Venda cancelada não pode ser alterada.");
 		}
-		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getFormaEntrega(),
-				request.getPrazoEntrega(),
-				request.getObservacoes());
+		aplicarCabecalho(venda, request);
 		return vendaRepository.save(venda);
 	}
 
-	private void aplicarCabecalho(Venda venda, String referencia, String formaPagamento, String formaEntrega,
-			String prazoEntrega, String observacoes) {
-		venda.setReferencia(limpar(referencia));
-		venda.setFormaPagamento(limpar(formaPagamento));
-		venda.setFormaEntrega(limpar(formaEntrega));
-		venda.setPrazoEntrega(limpar(prazoEntrega));
-		venda.setObservacoes(limpar(observacoes));
+	private void aplicarCabecalho(Venda venda, VendaCabecalhoRequest request) {
+		venda.setReferencia(limpar(request.getReferencia()));
+		venda.setFormaPagamento(limpar(request.getFormaPagamento()));
+		venda.setCondicaoPagamento(limpar(request.getCondicaoPagamento()));
+		venda.setFormaEntrega(limpar(request.getFormaEntrega()));
+		venda.setPrazoEntrega(limpar(request.getPrazoEntrega()));
+		venda.setObservacoes(limpar(request.getObservacoes()));
+	}
+
+	private VendaCabecalhoRequest cabecalhoDe(VendaCreateRequest request) {
+		VendaCabecalhoRequest cabecalho = new VendaCabecalhoRequest();
+		cabecalho.setReferencia(request.getReferencia());
+		cabecalho.setFormaPagamento(request.getFormaPagamento());
+		cabecalho.setCondicaoPagamento(request.getCondicaoPagamento());
+		cabecalho.setFormaEntrega(request.getFormaEntrega());
+		cabecalho.setPrazoEntrega(request.getPrazoEntrega());
+		cabecalho.setObservacoes(request.getObservacoes());
+		return cabecalho;
 	}
 
 	// Maiúsculas: mesmo padrão dos cadastros (UppercaseConverter); feito aqui no

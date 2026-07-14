@@ -78,8 +78,13 @@ public class Venda {
 
 	// Condições combinadas com o cliente (texto livre; saem no impresso).
 	// Não afetam preço, por isso são editáveis fora da janela de 1h.
+	// Meio de pagamento: dinheiro, PIX, cartão, cheque...
 	@Column(name = "forma_pagamento", length = 120)
 	private String formaPagamento;
+
+	// Combinado: à vista, 50% entrada + 50% na retirada, 30 dias...
+	@Column(name = "condicao_pagamento", length = 120)
+	private String condicaoPagamento;
 
 	// Transporte combinado: retirada na loja, entrega, instalação, transportadora...
 	@Column(name = "forma_entrega", length = 120)
@@ -251,6 +256,14 @@ public class Venda {
 
 	public void setFormaPagamento(String formaPagamento) {
 		this.formaPagamento = formaPagamento;
+	}
+
+	public String getCondicaoPagamento() {
+		return condicaoPagamento;
+	}
+
+	public void setCondicaoPagamento(String condicaoPagamento) {
+		this.condicaoPagamento = condicaoPagamento;
 	}
 
 	public String getFormaEntrega() {

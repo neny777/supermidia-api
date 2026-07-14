@@ -26,6 +26,9 @@ public class VendaCreateRequest {
 	@Size(max = 120, message = "Forma de pagamento: máximo 120 caracteres.")
 	private String formaPagamento;
 
+	@Size(max = 120, message = "Condição de pagamento: máximo 120 caracteres.")
+	private String condicaoPagamento;
+
 	@Size(max = 120, message = "Forma de entrega: máximo 120 caracteres.")
 	private String formaEntrega;
 
@@ -69,6 +72,14 @@ public class VendaCreateRequest {
 
 	public void setFormaPagamento(String formaPagamento) {
 		this.formaPagamento = formaPagamento;
+	}
+
+	public String getCondicaoPagamento() {
+		return condicaoPagamento;
+	}
+
+	public void setCondicaoPagamento(String condicaoPagamento) {
+		this.condicaoPagamento = condicaoPagamento;
 	}
 
 	public String getFormaEntrega() {
