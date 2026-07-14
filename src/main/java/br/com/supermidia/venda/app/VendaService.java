@@ -155,8 +155,10 @@ public class VendaService {
 		venda.setObservacoes(limpar(observacoes));
 	}
 
+	// Maiúsculas: mesmo padrão dos cadastros (UppercaseConverter); feito aqui no
+	// service para a resposta da API já voltar maiúscula na mesma requisição.
 	private String limpar(String texto) {
-		return texto == null || texto.isBlank() ? null : texto.trim();
+		return texto == null || texto.isBlank() ? null : texto.trim().toUpperCase();
 	}
 
 	/**

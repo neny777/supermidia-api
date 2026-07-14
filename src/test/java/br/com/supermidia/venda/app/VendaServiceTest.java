@@ -344,7 +344,7 @@ class VendaServiceTest {
 	}
 
 	@Test
-	void atualizarCabecalhoGravaCondicoesLimpandoBrancos() {
+	void atualizarCabecalhoGravaCondicoesEmMaiusculasLimpandoBrancos() {
 		UUID vendaId = UUID.randomUUID();
 		Venda venda = new Venda();
 		venda.setStatus(StatusVenda.ORDEM_SERVICO);
@@ -360,9 +360,9 @@ class VendaServiceTest {
 
 		Venda atualizada = vendaService.atualizarCabecalho(vendaId, request);
 
-		assertThat(atualizada.getReferencia()).isEqualTo("Fachada Loja Centro");
-		assertThat(atualizada.getFormaPagamento()).isEqualTo("50% entrada + 50% na entrega");
-		assertThat(atualizada.getPrazoEntrega()).isEqualTo("5 dias úteis");
+		assertThat(atualizada.getReferencia()).isEqualTo("FACHADA LOJA CENTRO");
+		assertThat(atualizada.getFormaPagamento()).isEqualTo("50% ENTRADA + 50% NA ENTREGA");
+		assertThat(atualizada.getPrazoEntrega()).isEqualTo("5 DIAS ÚTEIS");
 		assertThat(atualizada.getObservacoes()).isNull();
 	}
 
