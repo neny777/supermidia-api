@@ -21,6 +21,7 @@ public class VendaResponse {
 	private LocalDate validoAte;
 	private BigDecimal total;
 	private String referencia;
+	private String atendenteNome;
 	private String formaPagamento;
 	private String prazoEntrega;
 	private String observacoes;
@@ -112,6 +113,14 @@ public class VendaResponse {
 
 	public void setReferencia(String referencia) {
 		this.referencia = referencia;
+	}
+
+	public String getAtendenteNome() {
+		return atendenteNome;
+	}
+
+	public void setAtendenteNome(String atendenteNome) {
+		this.atendenteNome = atendenteNome;
 	}
 
 	public String getFormaPagamento() {

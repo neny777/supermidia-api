@@ -188,6 +188,7 @@ public class ClienteService {
 			dto.setMunicipio(cliente.getPessoa().getMunicipio());
 			dto.setUf(cliente.getPessoa().getUf());
 			dto.setTipo(cliente.getPessoa().getTipo());
+			dto.setCategoria(cliente.getCategoria());
 			clientesDTO.add(dto);
 		}
 		return clientesDTO;

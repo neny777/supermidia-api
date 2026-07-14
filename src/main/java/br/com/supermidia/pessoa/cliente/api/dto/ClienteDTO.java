@@ -2,6 +2,8 @@ package br.com.supermidia.pessoa.cliente.api.dto;
 
 import java.util.UUID;
 
+import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
+
 public class ClienteDTO {
 	private UUID id;
 	private String nome;
@@ -10,6 +12,8 @@ public class ClienteDTO {
 	private String municipio;
 	private String uf;
 	private String tipo;
+	// R (revenda → atacado) ou F (consumidor final → varejo)
+	private Categoria categoria;
 
 	public UUID getId() {
 		return id;
@@ -65,5 +69,13 @@ public class ClienteDTO {
 
 	public void setTipo(String tipo) {
 		this.tipo = tipo;
-	}	
+	}
+
+	public Categoria getCategoria() {
+		return categoria;
+	}
+
+	public void setCategoria(Categoria categoria) {
+		this.categoria = categoria;
+	}
 }

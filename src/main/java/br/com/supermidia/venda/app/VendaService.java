@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
+import br.com.supermidia.pessoa.usuario.domain.Usuario;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
@@ -62,6 +65,7 @@ public class VendaService {
 
 		Venda venda = new Venda();
 		venda.setNumero(vendaRepository.proximoNumero());
+		venda.setAtendenteNome(nomeAtendenteLogado());
 		venda.setCliente(cliente);
 		venda.setStatus(statusInicial);
 		aplicarCabecalho(venda, request.getReferencia(), request.getFormaPagamento(), request.getPrazoEntrega(),
@@ -159,6 +163,16 @@ public class VendaService {
 	// service para a resposta da API já voltar maiúscula na mesma requisição.
 	private String limpar(String texto) {
 		return texto == null || texto.isBlank() ? null : texto.trim().toUpperCase();
+	}
+
+	/** Nome de quem está logado (snapshot do atendente); nulo fora de requisição. */
+	private String nomeAtendenteLogado() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication != null && authentication.getPrincipal() instanceof Usuario usuario
+				&& usuario.getColaborador() != null && usuario.getColaborador().getFisica() != null) {
+			return usuario.getColaborador().getFisica().getNome();
+		}
+		return null;
 	}
 
 	/**

@@ -72,6 +72,10 @@ public class Venda {
 	@Column(name = "referencia", length = 120)
 	private String referencia;
 
+	// Snapshot de quem criou a venda ("quem me atendeu?") — nome, sem FK.
+	@Column(name = "atendente_nome", length = 120)
+	private String atendenteNome;
+
 	// Condições combinadas com o cliente (texto livre; saem no impresso).
 	// Não afetam preço, por isso são editáveis fora da janela de 1h.
 	@Column(name = "forma_pagamento", length = 120)
@@ -227,6 +231,14 @@ public class Venda {
 
 	public void setReferencia(String referencia) {
 		this.referencia = referencia;
+	}
+
+	public String getAtendenteNome() {
+		return atendenteNome;
+	}
+
+	public void setAtendenteNome(String atendenteNome) {
+		this.atendenteNome = atendenteNome;
 	}
 
 	public String getFormaPagamento() {
