@@ -14,6 +14,9 @@ src/main/resources/static/
 
 # Credenciais SMTP locais usadas pelo empacotador (NUNCA versionar)
 deploy/mail.env
+
+# Binário do WinSW (18MB; o build-pacote.sh baixa se faltar)
+deploy/winsw/
 .classpath
 .factorypath
 .project

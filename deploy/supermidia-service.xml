@@ -1,0 +1,44 @@
+<!--
+  Servico Windows do Supermidia (via WinSW).
+  Instalar: botao direito em instalar-servico.bat -> Executar como administrador.
+  Sem janela aberta; inicia com o Windows; reinicia sozinho se cair.
+  Logs do servidor: pasta logs\ ao lado deste arquivo.
+-->
+<service>
+  <id>supermidia</id>
+  <name>Supermidia</name>
+  <description>Servidor do sistema Supermidia (backend + frontend na porta 8080).</description>
+
+  <executable>java</executable>
+  <arguments>-jar "%BASE%\supermidia.jar"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+
+  <!-- Banco de dados local -->
+  <env name="DB_HOST" value="localhost"/>
+  <env name="DB_PORT" value="3306"/>
+  <env name="DB_DATABASE_NAME" value="supermidia"/>
+  <env name="DB_USERNAME" value="root"/>
+  <env name="DB_PASSWORD" value="root"/>
+
+  <!-- Chave de assinatura dos logins (gerada no empacotamento).
+       Para manter os logins atuais, cole aqui o valor do start-supermidia.bat antigo. -->
+  <env name="JWT_SECRET_KEY" value="__JWT_SECRET__"/>
+
+  <!-- E-mail (recuperacao de senha) -->
+  <env name="MAIL_HOST" value="__MAIL_HOST__"/>
+  <env name="MAIL_PORT" value="__MAIL_PORT__"/>
+  <env name="MAIL_USERNAME" value="__MAIL_USERNAME__"/>
+  <env name="MAIL_PASSWORD" value="__MAIL_PASSWORD__"/>
+
+  <!-- Se o servidor cair, reinicia sozinho em 10 segundos -->
+  <onfailure action="restart" delay="10 sec"/>
+  <startmode>Automatic</startmode>
+  <stoptimeout>30 sec</stoptimeout>
+
+  <!-- A "janela preta" vira arquivos de log com rotacao -->
+  <logpath>%BASE%\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>4</keepFiles>
+  </log>
+</service>

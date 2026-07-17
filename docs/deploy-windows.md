@@ -72,11 +72,29 @@ http://192.168.3.50:8080
 
 Login normal — os mesmos usuários e senhas de hoje.
 
-## 7. (Opcional) Iniciar junto com o Windows
+## 7. (Recomendado) Rodar como serviço do Windows — sem janela aberta
 
-Agendador de Tarefas → Criar Tarefa → Disparador "Ao fazer logon" → Ação:
-iniciar `C:\supermidia\start-supermidia.bat`. Marque "Executar com privilégios
-mais altos" se necessário.
+O modo do passo 5 exige uma janela preta aberta — que alguém sempre fecha por
+engano. O **modo serviço** resolve: sem janela nenhuma, inicia sozinho quando o
+Windows liga e **reinicia sozinho se o servidor cair**.
+
+1. Confira que estes arquivos do pacote estão em `C:\supermidia`:
+   `supermidia-service.exe`, `supermidia-service.xml`, `instalar-servico.bat`.
+2. **Se o sistema já rodava pelo `.bat`:** para manter os logins de todos,
+   abra o `start-supermidia.bat` antigo, copie o valor de `JWT_SECRET_KEY` e
+   cole no lugar do valor correspondente no `supermidia-service.xml`
+   (botão direito → Abrir com → Bloco de Notas). Se pular este passo, o sistema
+   funciona igual — só que todos precisam fazer login de novo uma vez.
+3. Feche a janela preta do servidor (se estiver aberta).
+4. Botão direito em **`instalar-servico.bat`** → **Executar como administrador**.
+
+Pronto: o serviço "Supermidia" aparece em `services.msc` e sobe sozinho a cada
+boot. A "janela preta" vira arquivos de log em `C:\supermidia\logs\` (com
+rotação automática — é lá que se olha quando algo der errado, ex.: e-mail que
+não saiu). Para remover o serviço: `desinstalar-servico.bat` como administrador.
+
+> Com o serviço instalado, o `start-supermidia.bat` vira reserva para uso
+> manual — não use os dois ao mesmo tempo (a porta 8080 conflita).
 
 ---
 
@@ -93,6 +111,9 @@ mais altos" se necessário.
 ## Para atualizar o sistema depois
 
 No Linux de desenvolvimento: rode `deploy/build-pacote.sh`, copie o novo
-`supermidia.jar` por cima do antigo no Windows e reinicie o `.bat`.
+`supermidia.jar` por cima do antigo no Windows e reinicie o servidor —
+no modo serviço: `services.msc` → Supermidia → Reiniciar (ou
+`supermidia-service.exe restart` num prompt como administrador); no modo
+janela: feche e abra o `.bat`.
 **Não** reimporte o dump (apagaria os dados criados no teste!) — o banco
 evolui sozinho a cada versão (`ddl-auto=update`).

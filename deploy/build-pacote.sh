@@ -32,12 +32,27 @@ else
   MAIL_USERNAME="nao-configurado"; MAIL_PASSWORD="nao-configurado"
 fi
 
-sed -e "s|__JWT_SECRET__|$JWT|" \
-    -e "s|__MAIL_HOST__|${MAIL_HOST//&/\\&}|" \
-    -e "s|__MAIL_PORT__|${MAIL_PORT//&/\\&}|" \
-    -e "s|__MAIL_USERNAME__|${MAIL_USERNAME//&/\\&}|" \
-    -e "s|__MAIL_PASSWORD__|${MAIL_PASSWORD//&/\\&}|" \
-    "$API/deploy/start-supermidia.bat" | sed 's/$/\r/' > "$OUT/start-supermidia.bat"
+preencher() { # injeta JWT/SMTP e converte para CRLF (arquivos consumidos no Windows)
+  sed -e "s|__JWT_SECRET__|$JWT|" \
+      -e "s|__MAIL_HOST__|${MAIL_HOST//&/\\&}|" \
+      -e "s|__MAIL_PORT__|${MAIL_PORT//&/\\&}|" \
+      -e "s|__MAIL_USERNAME__|${MAIL_USERNAME//&/\\&}|" \
+      -e "s|__MAIL_PASSWORD__|${MAIL_PASSWORD//&/\\&}|" \
+      "$1" | sed 's/$/\r/' > "$2"
+}
+preencher "$API/deploy/start-supermidia.bat" "$OUT/start-supermidia.bat"
+preencher "$API/deploy/supermidia-service.xml" "$OUT/supermidia-service.xml"
+sed 's/$/\r/' "$API/deploy/instalar-servico.bat" > "$OUT/instalar-servico.bat"
+sed 's/$/\r/' "$API/deploy/desinstalar-servico.bat" > "$OUT/desinstalar-servico.bat"
+
+# WinSW: roda o jar como serviço do Windows (sem janela; baixa uma vez e guarda)
+WINSW="$API/deploy/winsw/WinSW-x64.exe"
+if [ ! -f "$WINSW" ]; then
+  mkdir -p "$API/deploy/winsw"
+  curl -sL -o "$WINSW" https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe
+fi
+cp "$WINSW" "$OUT/supermidia-service.exe"
+
 [ -f "$API/docs/deploy-windows.pdf" ] && cp "$API/docs/deploy-windows.pdf" "$OUT/LEIA-ME.pdf"
 cp "$API/deploy/supermidia.ico" "$OUT/supermidia.ico" # ícone p/ atalho do .bat no Windows
 
