@@ -18,6 +18,7 @@ import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
+import br.com.supermidia.pessoa.dominio.domain.Pessoa;
 import br.com.supermidia.pessoa.usuario.domain.Usuario;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
@@ -61,6 +62,10 @@ public class VendaService {
 		StatusVenda statusInicial = request.getStatus() == null ? StatusVenda.ORCAMENTO : request.getStatus();
 		if (statusInicial == StatusVenda.CANCELADO) {
 			throw new VendaValidationException("Uma venda não pode ser criada já cancelada.");
+		}
+
+		if (statusInicial == StatusVenda.ORDEM_SERVICO) {
+			exigirContatoParaOs(cliente);
 		}
 
 		Venda venda = new Venda();
@@ -119,6 +124,9 @@ public class VendaService {
 		StatusVenda status = request.getStatus() == null ? venda.getStatus() : request.getStatus();
 		if (status == StatusVenda.CANCELADO) {
 			throw new VendaValidationException("Use a ação de cancelamento para cancelar a venda.");
+		}
+		if (status == StatusVenda.ORDEM_SERVICO) {
+			exigirContatoParaOs(cliente);
 		}
 
 		venda.setCliente(cliente);
@@ -209,8 +217,23 @@ public class VendaService {
 	@Transactional
 	public Venda converterParaOrdemServico(UUID id) {
 		Venda venda = findById(id);
+		exigirContatoParaOs(venda.getCliente());
 		venda.converterParaOrdemServico();
 		return vendaRepository.save(venda);
+	}
+
+	/**
+	 * Orçamento pede identificação (nome+categoria); OS pede ALCANÇABILIDADE:
+	 * telefone ou e-mail no cliente (decisão de balcão, 2026-07-16).
+	 */
+	private void exigirContatoParaOs(Cliente cliente) {
+		Pessoa pessoa = cliente == null ? null : cliente.getPessoa();
+		boolean semTelefone = pessoa == null || pessoa.getTelefone() == null || pessoa.getTelefone().isBlank();
+		boolean semEmail = pessoa == null || pessoa.getEmail() == null || pessoa.getEmail().isBlank();
+		if (semTelefone && semEmail) {
+			throw new VendaValidationException(
+					"Para abrir uma ordem de serviço o cliente precisa de telefone ou e-mail — complete a ficha do cliente.");
+		}
 	}
 
 	@Transactional

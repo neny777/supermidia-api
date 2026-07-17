@@ -27,6 +27,7 @@ import br.com.supermidia.configuracao.domain.ConfiguracaoGlobal;
 import br.com.supermidia.pessoa.cliente.domain.Cliente;
 import br.com.supermidia.pessoa.cliente.domain.Cliente.Categoria;
 import br.com.supermidia.pessoa.cliente.infra.ClienteRepository;
+import br.com.supermidia.pessoa.dominio.domain.Fisica;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoItemResponse;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoRequest;
 import br.com.supermidia.produto.api.dto.ProdutoCalculoResponse;
@@ -378,12 +379,50 @@ class VendaServiceTest {
 				.isInstanceOf(VendaValidationException.class);
 	}
 
+	@Test
+	void osDiretaDeveFalharQuandoClienteNaoTemContato() {
+		UUID clienteId = UUID.randomUUID();
+		when(clienteRepository.findById(clienteId)).thenReturn(Optional.of(clienteSemContato(clienteId, Categoria.F)));
+
+		VendaCreateRequest request = request(clienteId, UUID.randomUUID());
+		request.setStatus(StatusVenda.ORDEM_SERVICO);
+
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.criar(request))
+				.isInstanceOf(VendaValidationException.class)
+				.hasMessageContaining("telefone ou e-mail");
+	}
+
+	@Test
+	void converterDeveFalharQuandoClienteNaoTemContato() {
+		UUID vendaId = UUID.randomUUID();
+		Venda venda = new Venda();
+		venda.setStatus(StatusVenda.ORCAMENTO);
+		venda.setDataCriacao(LocalDateTime.now());
+		venda.setCliente(clienteSemContato(UUID.randomUUID(), Categoria.F));
+		when(vendaRepository.findById(vendaId)).thenReturn(Optional.of(venda));
+
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> vendaService.converterParaOrdemServico(vendaId))
+				.isInstanceOf(VendaValidationException.class)
+				.hasMessageContaining("telefone ou e-mail");
+	}
+
 	// --- fixtures ---
 
 	private Cliente cliente(UUID id, Categoria categoria) {
 		Cliente cliente = new Cliente();
 		cliente.setId(id);
 		cliente.setCategoria(categoria);
+		Fisica fisica = new Fisica();
+		fisica.setTelefone("(35) 99999-0000"); // OS exige telefone ou e-mail
+		cliente.setPessoa(fisica);
+		return cliente;
+	}
+
+	private Cliente clienteSemContato(UUID id, Categoria categoria) {
+		Cliente cliente = new Cliente();
+		cliente.setId(id);
+		cliente.setCategoria(categoria);
+		cliente.setPessoa(new Fisica());
 		return cliente;
 	}
 

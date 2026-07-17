@@ -55,7 +55,7 @@ public class ClienteFisicoDTO extends ClienteDTO {
 	@Convert(converter = UppercaseConverter.class)
 	private String rg;
 	@Enumerated(EnumType.STRING)
-	@NotNull(message = "O sexo é obrigatório.")
+	// Opcional: cadastro rápido do balcão só exige nome + categoria.
 	private Sexo sexo;
 	private LocalDate nascimento;
 	@NotNull(message = "O categoria é obrigatório.")

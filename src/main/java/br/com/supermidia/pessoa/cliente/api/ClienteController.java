@@ -69,16 +69,15 @@ public class ClienteController {
 
 	// Cadastrar cliente físico
 	@PostMapping("/fisico")
-	public ResponseEntity<Void> createClienteFisico(@RequestBody @Valid ClienteFisicoDTO dto) {
-		clienteService.createFisico(dto);
-		return ResponseEntity.status(HttpStatus.CREATED).build();
+	public ResponseEntity<UUID> createClienteFisico(@RequestBody @Valid ClienteFisicoDTO dto) {
+		// Devolve o id criado: o cadastro rápido da venda seleciona o cliente na hora.
+		return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.createFisico(dto).getId());
 	}
 
 	// Cadastrar cliente jurídico
 	@PostMapping("/juridico")
-	public ResponseEntity<Void> createClienteJuridico(@RequestBody @Valid ClienteJuridicoDTO dto) {
-		clienteService.createJuridico(dto);
-		return ResponseEntity.status(HttpStatus.CREATED).build();
+	public ResponseEntity<UUID> createClienteJuridico(@RequestBody @Valid ClienteJuridicoDTO dto) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.createJuridico(dto).getId());
 	}
 
 	// Atualizar cliente físico
