@@ -182,12 +182,13 @@ public class VendaService {
 		return texto == null || texto.isBlank() ? null : texto.trim().toUpperCase();
 	}
 
-	/** Nome de quem está logado (snapshot do atendente); nulo fora de requisição. */
+	/** Primeiro nome de quem está logado (snapshot do atendente); nulo fora de requisição. */
 	private String nomeAtendenteLogado() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication != null && authentication.getPrincipal() instanceof Usuario usuario
 				&& usuario.getColaborador() != null && usuario.getColaborador().getFisica() != null) {
-			return usuario.getColaborador().getFisica().getNome();
+			String nome = usuario.getColaborador().getFisica().getNome();
+			return nome == null ? null : nome.trim().split("\\s+")[0];
 		}
 		return null;
 	}

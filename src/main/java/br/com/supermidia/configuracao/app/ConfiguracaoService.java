@@ -84,7 +84,7 @@ public class ConfiguracaoService {
 			mudou = true;
 		}
 		if (configuracao.getPrazoEntregaPadrao() == null) {
-			configuracao.setPrazoEntregaPadrao("A COMBINAR");
+			configuracao.setPrazoEntregaPadrao("1 DIA"); // cobre ~85% das vendas (Denis)
 			mudou = true;
 		}
 		return mudou;
