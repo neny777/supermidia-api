@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.supermidia.configuracao.api.dto.ConfiguracaoDTO;
+import br.com.supermidia.configuracao.api.dto.VendaPadroesDTO;
 import br.com.supermidia.configuracao.app.ConfiguracaoService;
 import jakarta.validation.Valid;
 
@@ -24,6 +25,12 @@ public class ConfiguracaoController {
 	@GetMapping
 	public ResponseEntity<ConfiguracaoDTO> obter() {
 		return ResponseEntity.ok(ConfiguracaoDTO.de(service.obter()));
+	}
+
+	/** Padrões do formulário da venda — acessível ao papel 'vendas'. */
+	@GetMapping("/venda-padroes")
+	public ResponseEntity<VendaPadroesDTO> vendaPadroes() {
+		return ResponseEntity.ok(VendaPadroesDTO.de(service.obter()));
 	}
 
 	@PutMapping

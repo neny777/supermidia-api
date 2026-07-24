@@ -8,6 +8,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class ConfiguracaoDTO {
 
@@ -32,12 +33,32 @@ public class ConfiguracaoDTO {
 	@DecimalMax(value = "10", message = "Fator de varejo máximo: 10.")
 	private BigDecimal fatorVarejo;
 
+	@Size(max = 120, message = "Forma de pagamento padrão: máximo 120 caracteres.")
+	private String formaPagamentoPadrao;
+
+	@Size(max = 120, message = "Condição de pagamento padrão: máximo 120 caracteres.")
+	private String condicaoPagamentoPadrao;
+
+	@Size(max = 500, message = "Condições sugeridas: máximo 500 caracteres.")
+	private String condicoesSugeridas;
+
+	@Size(max = 120, message = "Forma de entrega padrão: máximo 120 caracteres.")
+	private String formaEntregaPadrao;
+
+	@Size(max = 60, message = "Prazo de entrega padrão: máximo 60 caracteres.")
+	private String prazoEntregaPadrao;
+
 	public static ConfiguracaoDTO de(Configuracao configuracao) {
 		ConfiguracaoDTO dto = new ConfiguracaoDTO();
 		dto.setValidadeOrcamentoDias(configuracao.getValidadeOrcamentoDias());
 		dto.setEdicaoHoras(configuracao.getEdicaoHoras());
 		dto.setPisoMargem(configuracao.getPisoMargem());
 		dto.setFatorVarejo(configuracao.getFatorVarejo());
+		dto.setFormaPagamentoPadrao(configuracao.getFormaPagamentoPadrao());
+		dto.setCondicaoPagamentoPadrao(configuracao.getCondicaoPagamentoPadrao());
+		dto.setCondicoesSugeridas(configuracao.getCondicoesSugeridas());
+		dto.setFormaEntregaPadrao(configuracao.getFormaEntregaPadrao());
+		dto.setPrazoEntregaPadrao(configuracao.getPrazoEntregaPadrao());
 		return dto;
 	}
 
@@ -71,5 +92,45 @@ public class ConfiguracaoDTO {
 
 	public void setFatorVarejo(BigDecimal fatorVarejo) {
 		this.fatorVarejo = fatorVarejo;
+	}
+
+	public String getFormaPagamentoPadrao() {
+		return formaPagamentoPadrao;
+	}
+
+	public void setFormaPagamentoPadrao(String formaPagamentoPadrao) {
+		this.formaPagamentoPadrao = formaPagamentoPadrao;
+	}
+
+	public String getCondicaoPagamentoPadrao() {
+		return condicaoPagamentoPadrao;
+	}
+
+	public void setCondicaoPagamentoPadrao(String condicaoPagamentoPadrao) {
+		this.condicaoPagamentoPadrao = condicaoPagamentoPadrao;
+	}
+
+	public String getCondicoesSugeridas() {
+		return condicoesSugeridas;
+	}
+
+	public void setCondicoesSugeridas(String condicoesSugeridas) {
+		this.condicoesSugeridas = condicoesSugeridas;
+	}
+
+	public String getFormaEntregaPadrao() {
+		return formaEntregaPadrao;
+	}
+
+	public void setFormaEntregaPadrao(String formaEntregaPadrao) {
+		this.formaEntregaPadrao = formaEntregaPadrao;
+	}
+
+	public String getPrazoEntregaPadrao() {
+		return prazoEntregaPadrao;
+	}
+
+	public void setPrazoEntregaPadrao(String prazoEntregaPadrao) {
+		this.prazoEntregaPadrao = prazoEntregaPadrao;
 	}
 }

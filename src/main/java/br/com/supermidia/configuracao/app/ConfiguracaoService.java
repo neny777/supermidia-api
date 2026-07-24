@@ -28,7 +28,13 @@ public class ConfiguracaoService {
 
 	@Transactional
 	public Configuracao obter() {
-		return repository.findById(Configuracao.ID_UNICO).orElseGet(() -> repository.save(padraoDeFabrica()));
+		Configuracao configuracao = repository.findById(Configuracao.ID_UNICO)
+				.orElseGet(() -> repository.save(padraoDeFabrica()));
+		// Migração suave: campos novos nascem nulos em linhas antigas.
+		if (preencherPadroesFaltantes(configuracao)) {
+			configuracao = repository.save(configuracao);
+		}
+		return configuracao;
 	}
 
 	@Transactional
@@ -38,6 +44,11 @@ public class ConfiguracaoService {
 		configuracao.setEdicaoHoras(dto.getEdicaoHoras());
 		configuracao.setPisoMargem(dto.getPisoMargem());
 		configuracao.setFatorVarejo(dto.getFatorVarejo());
+		configuracao.setFormaPagamentoPadrao(dto.getFormaPagamentoPadrao());
+		configuracao.setCondicaoPagamentoPadrao(dto.getCondicaoPagamentoPadrao());
+		configuracao.setCondicoesSugeridas(dto.getCondicoesSugeridas());
+		configuracao.setFormaEntregaPadrao(dto.getFormaEntregaPadrao());
+		configuracao.setPrazoEntregaPadrao(dto.getPrazoEntregaPadrao());
 		Configuracao salva = repository.save(configuracao);
 		ConfiguracaoGlobal.aplicar(salva); // vale imediatamente, sem reiniciar
 		return salva;
@@ -49,6 +60,33 @@ public class ConfiguracaoService {
 		configuracao.setEdicaoHoras(ConfiguracaoGlobal.EDICAO_HORAS_PADRAO);
 		configuracao.setPisoMargem(ConfiguracaoGlobal.PISO_MARGEM_PADRAO);
 		configuracao.setFatorVarejo(ConfiguracaoGlobal.FATOR_VAREJO_PADRAO);
+		preencherPadroesFaltantes(configuracao);
 		return configuracao;
+	}
+
+	/** Padrões de fábrica dos textos da venda (Denis ajusta na tela depois). */
+	private boolean preencherPadroesFaltantes(Configuracao configuracao) {
+		boolean mudou = false;
+		if (configuracao.getFormaPagamentoPadrao() == null) {
+			configuracao.setFormaPagamentoPadrao("PIX, DINHEIRO OU CARTÃO");
+			mudou = true;
+		}
+		if (configuracao.getCondicaoPagamentoPadrao() == null) {
+			configuracao.setCondicaoPagamentoPadrao("PAGAMENTO NA APROVAÇÃO");
+			mudou = true;
+		}
+		if (configuracao.getCondicoesSugeridas() == null) {
+			configuracao.setCondicoesSugeridas("PAGAMENTO NA APROVAÇÃO\n50% NA APROVAÇÃO + 50% NA RETIRADA");
+			mudou = true;
+		}
+		if (configuracao.getFormaEntregaPadrao() == null) {
+			configuracao.setFormaEntregaPadrao("RETIRADA NA LOJA");
+			mudou = true;
+		}
+		if (configuracao.getPrazoEntregaPadrao() == null) {
+			configuracao.setPrazoEntregaPadrao("A COMBINAR");
+			mudou = true;
+		}
+		return mudou;
 	}
 }
